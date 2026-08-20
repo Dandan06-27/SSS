@@ -15,6 +15,7 @@ const logoutButton = document.getElementById('logoutButton');
 const pageWrapper = document.getElementById('dashboardShell');
 const officerView = document.getElementById('officerView');
 let currentUser = null;
+const AUTH_TRANSITION_MS = 1200;
 
 const isOfficerRole = (role) => ['Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'].includes(role);
 
@@ -29,19 +30,32 @@ const showAuthForm = (formName) => {
   });
 };
 
-const showDashboard = (account) => {
+const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
-  authScreen.hidden = true;
-  dashboardShell.hidden = false;
   const officerMode = isOfficerRole(account.role);
   pageWrapper.classList.toggle('officer-mode', officerMode);
   pageWrapper.dataset.officerView = officerMode ? account.role.replace('Assistant Officer ', 'AO') : '';
   officerView.hidden = !officerMode;
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
+
+  if (animate) {
+    authScreen.hidden = false;
+    authScreen.classList.add('is-authenticating');
+    window.setTimeout(() => {
+      authScreen.classList.remove('is-authenticating');
+      authScreen.hidden = true;
+      dashboardShell.hidden = false;
+    }, AUTH_TRANSITION_MS);
+    return;
+  }
+
+  authScreen.hidden = true;
+  dashboardShell.hidden = false;
 };
 
 const signOut = () => {
   currentUser = null;
+  authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
   delete pageWrapper.dataset.officerView;
   officerView.hidden = true;
@@ -82,7 +96,7 @@ loginForm.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
 
     sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
-    showDashboard(result.user);
+    showDashboard(result.user, { animate: true });
     syncOfficerFormLayout();
   } catch (error) {
     loginError.textContent = error.message;

@@ -36,6 +36,52 @@ body {
   display: none;
 }
 
+.auth-screen.is-authenticating {
+  position: relative;
+  min-height: 100vh;
+  background: #173f78;
+  overflow: hidden;
+}
+
+.auth-screen.is-authenticating .auth-form-panel {
+  background: #173f78;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-screen.is-authenticating .auth-brand-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  min-height: 100vh;
+  animation: auth-brand-bounce 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes auth-brand-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+
+  68% {
+    transform: scale(0.97);
+  }
+
+  84% {
+    transform: scale(1.015);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .auth-brand-panel {
   display: grid;
   place-items: center;
