@@ -144,7 +144,11 @@ app.delete('/api/employers', async (request, response) => {
 
 app.use(express.static(__dirname));
 
-app.listen(PORT, () => {
-  console.log(`Frontend: http://localhost:${PORT}`);
-  console.log(`Backend:  http://localhost:${PORT}/api/health`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Frontend: http://localhost:${PORT}`);
+    console.log(`Backend:  http://localhost:${PORT}/api/health`);
+  });
+}
+
+module.exports = app;
