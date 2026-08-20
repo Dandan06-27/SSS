@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toledo - Social Security System</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-brand-panel">
+      <div class="auth-brand-content">
+        <span class="header-logo-window auth-logo-window">
+          <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
+        </span>
+        <h1>Social Security System</h1>
+        <p>Employer Encoding, Billing, & Settlement Monitoring System</p>
+        <span>Toledo City Branch</span>
+      </div>
+    </div>
+    <div class="auth-form-panel">
+      <div class="auth-card-shell">
+        <form class="login-card" id="loginForm">
+          <h2>Sign in</h2>
+          <p class="login-intro">Enter your username and password to access your account.</p>
+          <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+            <button class="auth-tab is-active" data-auth-tab="login" id="signInTab" type="button" role="tab" aria-selected="true">Sign in</button>
+            <button class="auth-tab" data-auth-tab="register" id="registerTab" type="button" role="tab" aria-selected="false">Register</button>
+          </div>
+          <label class="auth-field">
+            <span>Username</span>
+            <input id="username" name="username" type="text" autocomplete="username" required>
+          </label>
+          <label class="auth-field">
+            <span>Password</span>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="login-error" id="loginError" role="alert" hidden>Invalid username or password.</p>
+          <button class="login-submit" type="submit">Secure login</button>
+          <p class="login-note">Access is managed by the Social Security System - Toledo City Branch.</p>
+        </form>
+        <form class="login-card register-card" id="registerForm" hidden>
+          <h2>Create account</h2>
+          <p class="login-intro">Enter the information below to register a new account.</p>
+          <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+            <button class="auth-tab" data-auth-tab="login" type="button" role="tab" aria-selected="false">Sign in</button>
+            <button class="auth-tab is-active" data-auth-tab="register" type="button" role="tab" aria-selected="true">Register</button>
+          </div>
+          <label class="auth-field">
+            <span>Full name</span>
+            <input name="fullName" type="text" autocomplete="name" required>
+          </label>
+          <label class="auth-field">
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" required>
+          </label>
+          <label class="auth-field">
+            <span>Password (minimum 8 characters)</span>
+            <input name="registrationPassword" type="password" minlength="8" autocomplete="new-password" required>
+          </label>
+          <label class="auth-field">
+            <span>Confirm password</span>
+            <input name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required>
+          </label>
+          <label class="auth-field">
+            <span>Address</span>
+            <textarea name="address" rows="3" required></textarea>
+          </label>
+          <label class="terms-field">
+            <input name="terms" type="checkbox" required>
+            <span>Check here to indicate that you have read and agree to the <a href="#terms">Terms &amp; Conditions</a> and <a href="#privacy">Privacy Policy</a>.</span>
+          </label>
+          <p class="register-error" id="registerError" role="alert" hidden></p>
+          <button class="login-submit" type="submit">Submit registration</button>
+          <p class="register-footer">Already have an account? <button id="returnToLogin" type="button">Login</button></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-wrapper" id="dashboardShell" hidden>
+
+    <!-- Header -->
+    <header class="main-header">
+      <span class="header-logo-window">
+        <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
+      </span>
+      <h1 class="header-title">AMS SSS</h1>
+      <p class="header-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
+      <p class="header-dashboard">MONTHLY OPERATIONS DASHBOARD</p>
+      <p class="header-meta">REPORTING DATE: 13 - Aug 2026 &nbsp;|&nbsp; UPDATED: 13 - Aug 2026 22:17</p>
+      <div class="header-session">
+        <span id="loggedInUser"></span>
+        <button id="logoutButton" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-bar" id="mainNav">
+      <div class="dashboard-nav-item">
+        <button class="nav-btn active">DASHBOARD</button>
+        <button class="org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">&#9672;</button>
+      </div>
+      <div class="nav-item" data-nav-view="AO1">
+        <button class="dashboard-btn" type="button" aria-label="Open AO1 dashboard" data-dashboard-view="AO1">&#9638;</button>
+        <button class="nav-btn">AO1</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO1" data-form-view="AO1">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="AO2">
+        <button class="dashboard-btn" type="button" aria-label="Open AO2 dashboard" data-dashboard-view="AO2">&#9638;</button>
+        <button class="nav-btn">AO2</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO2" data-form-view="AO2">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="AO3">
+        <button class="dashboard-btn" type="button" aria-label="Open AO3 dashboard" data-dashboard-view="AO3">&#9638;</button>
+        <button class="nav-btn">AO3</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to AO3" data-form-view="AO3">+</button>
+      </div>
+      <div class="nav-item" data-nav-view="MasterFile">
+        <button class="dashboard-btn" type="button" aria-label="Open MasterFile dashboard" data-dashboard-view="MasterFile">&#9638;</button>
+        <button class="nav-btn">MASTERFILE</button>
+        <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
+      </div>
+    </nav>
+
+    <main class="officer-view" id="officerView" hidden aria-live="polite">
+      <section class="officer-form-shell" id="officerFormMount" aria-labelledby="officerFormTitle"></section>
+    </main>
+
+    <main id="dashboardView">
+
+    <!-- Metric Cards Row 1 -->
+    <section class="metrics-row metrics-row-5">
+      <div class="metric-card">
+        <div class="metric-header metric-blue">TOTAL EMPLOYERS</div>
+        <div class="metric-value" data-main-metric="total">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-green">SETTLED</div>
+        <div class="metric-value" data-main-metric="settled">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-red">UNSETTLED</div>
+        <div class="metric-value" data-main-metric="unsettled">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-gold">COMPLETION</div>
+        <div class="metric-value" data-main-metric="completion">0%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-lightblue">TOTAL BILLED</div>
+        <div class="metric-value" data-main-metric="billed">0</div>
+      </div>
+    </section>
+
+    <!-- Metric Cards Row 2 -->
+    <section class="metrics-row metrics-row-4">
+      <div class="metric-card">
+        <div class="metric-header metric-green">SETTLED AMOUNT</div>
+        <div class="metric-value" data-main-metric="settledAmount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-red">UNSETTLED AMOUNT</div>
+        <div class="metric-value" data-main-metric="unsettledAmount">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-gold">REGISTERED</div>
+        <div class="metric-value" data-main-metric="registered">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-header metric-lightblue">NOT YET REGISTERED</div>
+        <div class="metric-value" data-main-metric="unregistered">0</div>
+      </div>
+    </section>
+
+    <!-- Middle Section: Tables -->
+    <section class="middle-section">
+      <!-- Branch Performance Table -->
+      <div class="panel panel-branch">
+        <div class="panel-header">BRANCH PERFORMANCE</div>
+        <div class="panel-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Branch</th>
+                <th>Records</th>
+                <th>Settled</th>
+                <th>Unsettled</th>
+                <th>Billed Amount</th>
+                <th>Unsettled Amount</th>
+                <th>Completion%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-branch-row="AO1">
+                <td>AO1</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr data-branch-row="AO2">
+                <td>AO2</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr data-branch-row="AO3">
+                <td>AO3</td>
+                <td data-branch-metric="total">0</td>
+                <td data-branch-metric="settled">0</td>
+                <td data-branch-metric="unsettled">0</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
+                <td data-branch-metric="completion">0%</td>
+              </tr>
+              <tr class="total-row">
+                <td>TOTAL</td>
+                <td data-branch-total="total">0</td>
+                <td data-branch-total="settled">0</td>
+                <td data-branch-total="unsettled">0</td>
+                <td data-branch-total="billed">0</td>
+                <td data-branch-total="unsettledAmount">0</td>
+                <td data-branch-total="completion">0%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Status & Data Quality Monitor -->
+      <div class="panel panel-status">
+        <div class="panel-header">STATUS &amp; DATA QUALITY MONITOR</div>
+        <div class="panel-body">
+          <table class="status-table">
+            <tbody>
+              <tr>
+                <td>Settled records</td>
+                <td data-status-metric="settled">0</td>
+              </tr>
+              <tr>
+                <td>Unsettled records</td>
+                <td data-status-metric="unsettled">0</td>
+              </tr>
+              <tr>
+                <td>Records missing amount</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Records missing billing date</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Records missing status</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Duplicate employer number</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Section: Charts + Insights -->
+    <section class="bottom-section">
+      <div class="charts-area">
+        <div class="panel panel-charts">
+          <div class="panel-header">BRANCH PERFORMANCE CHART</div>
+          <div class="charts-grid">
+            <div class="chart-box">
+              <p class="chart-title">EMPLOYERS ENCODED BY BRANCH</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="pieChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <p class="chart-title">SETTLED VS UNSETTLED</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="barChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-box">
+              <p class="chart-title">OVERALL PERFORMANCE CHART</p>
+              <div class="chart-canvas-wrap">
+                <canvas id="groupedBarChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-insights">
+        <div class="panel-header">MANAGEMENT INSIGHTS</div>
+        <div class="panel-body insights-body">
+          <ul class="insights-list">
+            <li data-insight="leadingBranch">AO2 currently has the most encoded records.</li>
+            <li data-insight="completion">Overall completion rate: 0%</li>
+            <li data-insight="billing">Total billed: P0.00 | Unsettled: P0.00</li>
+            <li data-insight="settlement">Settled: 0 | Unsettled: 0</li>
+            <li data-insight="registration">Registered: 0 | Not Yet Registered: 0</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    </main>
+
+    <main class="ao-views" aria-live="polite">
+      <section class="ao-view" data-ao-view="AO1">
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="AO2">
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="AO3">
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="ao-view" data-ao-view="MasterFile">
+        <div class="ao-table-wrap">
+          <table class="ao-table">
+            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
+            <thead>
+              <tr>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="employerModal" hidden>
+      <section class="employer-modal" role="dialog" aria-modal="true" aria-labelledby="employerFormTitle">
+        <div class="employer-modal-header">
+          <h2 id="employerFormTitle">Employer's Data Form</h2>
+          <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
+        </div>
+        <form class="employer-form" id="employerForm">
+          <input type="hidden" name="assignedView" value="">
+          <label>Employer Number:<input name="employerNumber" type="text"></label>
+          <label>Employer Name:<input name="employerName" type="text"></label>
+          <label>Address:<input name="address" type="text"></label>
+          <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
+          <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
+          <label>Interest:<input name="interest" type="number" step="0.01" min="0"></label>
+          <label>Total Amount:<input name="totalAmount" type="number" step="0.01" min="0"></label>
+          <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
+          <label>SOA Date Served:<input name="soaDate" type="date"></label>
+          <label>Date of Coverage:<input name="coverageDate" type="date"></label>
+          <label>Status:
+            <select name="status" required>
+              <option value="" selected disabled>Select status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registed">Registed</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+            </select>
+          </label>
+          <button class="employer-submit-btn" type="submit">SUBMIT</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="tableDashboardModal" hidden>
+      <section class="table-dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="tableDashboardTitle">
+        <div class="employer-modal-header">
+          <h2 id="tableDashboardTitle">AO1 DASHBOARD</h2>
+          <button class="modal-close-btn" id="tableDashboardClose" type="button" aria-label="Close dashboard">&times;</button>
+        </div>
+        <div class="table-dashboard-content">
+          <section class="metrics-row metrics-row-5">
+            <div class="metric-card"><div class="metric-header metric-blue">TOTAL EMPLOYERS</div><div class="metric-value" data-dashboard-metric="total">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-green">SETTLED</div><div class="metric-value" data-dashboard-metric="settled">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED</div><div class="metric-value" data-dashboard-metric="unsettled">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">COMPLETION</div><div class="metric-value" data-dashboard-metric="completion">0%</div></div>
+            <div class="metric-card"><div class="metric-header metric-lightblue">TOTAL BILLED</div><div class="metric-value" data-dashboard-metric="billed">0</div></div>
+          </section>
+          <section class="metrics-row metrics-row-4">
+            <div class="metric-card"><div class="metric-header metric-green">SETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="settledAmount">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-red">UNSETTLED AMOUNT</div><div class="metric-value" data-dashboard-metric="unsettledAmount">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-gold">REGISTERED</div><div class="metric-value" data-dashboard-metric="registered">0</div></div>
+            <div class="metric-card"><div class="metric-header metric-lightblue">NOT YET REGISTERED</div><div class="metric-value" data-dashboard-metric="unregistered">0</div></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="orgChartModal" hidden>
+      <section class="org-chart-modal" role="dialog" aria-modal="true" aria-labelledby="orgChartTitle">
+        <div class="employer-modal-header">
+          <h2 id="orgChartTitle">ORGANIZATIONAL CHART</h2>
+          <button class="modal-close-btn" id="orgChartClose" type="button" aria-label="Close organizational chart">&times;</button>
+        </div>
+        <div class="org-chart-content">
+          <div class="org-chart-level org-chart-root-level">
+            <article class="org-node org-node-root">
+              <span class="org-role">ROOT</span>
+              <h3>Super Admin</h3>
+              <p class="org-username">super_admin</p>
+              <p>superadmin@assessor.gov.ph</p>
+              <div class="org-node-actions"><button type="button">View</button><button type="button">Edit</button></div>
+            </article>
+          </div>
+          <div class="org-chart-connector" aria-hidden="true"></div>
+          <div class="org-chart-level org-chart-admin-level">
+            <article class="org-node org-node-admin">
+              <span class="org-role">ADMIN</span>
+              <h3>Admin Account</h3>
+              <p class="org-username">admin</p>
+              <p>dandantampus01@gmail.com</p>
+              <div class="org-node-actions"><button type="button">View</button><button type="button">Edit</button></div>
+            </article>
+          </div>
+          <div class="org-chart-section-label">USERS</div>
+          <div class="org-chart-level org-chart-user-level">
+            <article class="org-node"><h3>Dandan Tampus</h3><p class="org-username">user</p><p>jestonydaniel.tampus@gmail.com</p><div class="org-node-actions"><button type="button">View</button><button type="button">Edit</button></div></article>
+            <article class="org-node"><h3>Example</h3><p class="org-username">user</p><p>Example1@gmail.com</p><div class="org-node-actions"><button type="button">View</button><button type="button">Edit</button></div></article>
+            <article class="org-node"><h3>Jestony Daniel M. Tampus</h3><p class="org-username">user</p><p>dandantampus02@gmail.com</p><div class="org-node-actions"><button type="button">View</button><button type="button">Edit</button></div></article>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop delete-confirm-backdrop" id="deleteConfirmModal" hidden>
+      <section class="delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+        <button class="delete-confirm-close" id="deleteConfirmClose" type="button" aria-label="Close delete confirmation">&times;</button>
+        <div class="delete-confirm-icon" aria-hidden="true">&#128465;</div>
+        <h2 id="deleteConfirmTitle">Delete selected data?</h2>
+        <p>Are you sure you want to delete the selected data?</p>
+        <p class="delete-confirm-error" id="deleteConfirmError" role="alert" hidden></p>
+        <div class="delete-confirm-actions">
+          <button class="delete-cancel-btn" id="deleteConfirmCancel" type="button">No, cancel</button>
+          <button class="delete-approve-btn" id="deleteConfirmApprove" type="button">Yes, I'm sure</button>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
