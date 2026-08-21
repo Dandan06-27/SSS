@@ -27,6 +27,26 @@ const validateRbacLogin = (profile, allowedRoles = RBAC_ALLOWED_ROLES) => {
   return { valid: true, role };
 };
 
+const findProfileByLoginIdentifier = async (loginIdentifier, supabaseClient) => {
+  const normalizedIdentifier = String(loginIdentifier || '').trim().toLowerCase();
+  if (!normalizedIdentifier) return null;
+
+  const { data, error } = await supabaseClient
+    .from('profiles')
+    .select('*');
+
+  if (error) {
+    console.error('Profile list lookup error:', error);
+    throw error;
+  }
+
+  return (data || []).find((profile) => {
+    const email = String(profile.email || '').trim().toLowerCase();
+    const username = String(profile.username || '').trim().toLowerCase();
+    return email === normalizedIdentifier || username === normalizedIdentifier;
+  }) || null;
+};
+
 if (!supabase) {
   console.warn('Supabase is not configured. Add credentials to environment to enable employer persistence.');
 }
@@ -40,23 +60,17 @@ app.get('/api/health', (_request, response) => {
 app.post('/api/auth/login', async (request, response) => {
   if (!supabase || !supabaseDatabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
-  const loginIdentifier = String(request.body?.email || request.body?.username || '').trim().toLowerCase();
+  const loginIdentifier = String(request.body?.email || request.body?.username || '').trim();
   const password = String(request.body?.password || '');
   if (!loginIdentifier || !password) return response.status(400).json({ error: 'Email/username and password are required.' });
 
-  const lookupField = loginIdentifier.includes('@') ? 'email' : 'username';
-  const { data: profileData, error: profileError } = await supabaseDatabase
-    .from('profiles')
-    .select('*')
-    .eq(lookupField, loginIdentifier)
-    .maybeSingle();
-
-  if (profileError) {
+  let profile;
+  try {
+    profile = await findProfileByLoginIdentifier(loginIdentifier, supabaseDatabase);
+  } catch (profileError) {
     console.error('Profile lookup error:', profileError);
     return response.status(500).json({ error: 'Unable to verify account access.' });
   }
-
-  const profile = profileData;
   const profileValidation = validateRbacLogin(profile, RBAC_ALLOWED_ROLES);
   if (!profileValidation.valid) {
     const accountErrors = {
