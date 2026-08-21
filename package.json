@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "AMS SSS monthly operations dashboard",
-  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "build": "echo \"No build needed\"",
+    "dev": "node --watch api/server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
