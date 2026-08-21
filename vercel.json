@@ -6,6 +6,8 @@
     { "src": "**/*.{css,js,png,jpg,jpeg,svg,gif,ico,webp}", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/api/auth/login", "dest": "/api/auth/login.js" },
+    { "src": "/api/employers", "dest": "/api/employers.js" },
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/(.*\\.(?:css|js|png|jpg|jpeg|svg|gif|ico|webp))$", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
