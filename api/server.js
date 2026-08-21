@@ -1,10 +1,8 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
-const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3002;
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const supabase = supabaseUrl && supabaseKey
@@ -17,7 +15,7 @@ const supabaseDatabase = supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY
   : supabase;
 
 if (!supabase) {
-  console.warn('Supabase is not configured. Add credentials to a .env file to enable employer persistence.');
+  console.warn('Supabase is not configured. Add credentials to environment to enable employer persistence.');
 }
 
 app.use(express.json());
@@ -27,20 +25,14 @@ app.get('/api/health', (_request, response) => {
 });
 
 app.post('/api/auth/login', async (request, response) => {
-  if (!supabase) {
-    return response.status(503).json({ error: 'Supabase is not configured.' });
-  }
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
   const email = String(request.body?.email || '').trim().toLowerCase();
   const password = String(request.body?.password || '');
-  if (!email || !password) {
-    return response.status(400).json({ error: 'Email and password are required.' });
-  }
+  if (!email || !password) return response.status(400).json({ error: 'Email and password are required.' });
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) {
-    return response.status(401).json({ error: 'Invalid email or password.' });
-  }
+  if (error || !data.user) return response.status(401).json({ error: 'Invalid email or password.' });
 
   return response.json({
     user: {
@@ -74,9 +66,7 @@ const requireSuperAdmin = async (request, response) => {
 };
 
 app.get('/api/employers', async (request, response) => {
-  if (!supabase) {
-    return response.status(503).json({ error: 'Supabase is not configured.' });
-  }
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
   if (!(await requireSuperAdmin(request, response))) return;
 
@@ -94,16 +84,12 @@ app.get('/api/employers', async (request, response) => {
 });
 
 app.post('/api/employers', async (request, response) => {
-  if (!supabase) {
-    return response.status(503).json({ error: 'Supabase is not configured.' });
-  }
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
   const employer = request.body;
   const requiredFields = ['assigned_view', 'employer_number', 'employer_name', 'status'];
 
-  if (requiredFields.some((field) => !employer[field])) {
-    return response.status(400).json({ error: 'Missing required employer fields.' });
-  }
+  if (requiredFields.some((field) => !employer[field])) return response.status(400).json({ error: 'Missing required employer fields.' });
 
   const { data, error } = await supabaseDatabase
     .from('employers')
@@ -120,14 +106,10 @@ app.post('/api/employers', async (request, response) => {
 });
 
 app.delete('/api/employers', async (request, response) => {
-  if (!supabase) {
-    return response.status(503).json({ error: 'Supabase is not configured.' });
-  }
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
   const ids = Array.isArray(request.body?.ids) ? request.body.ids : [];
-  if (!ids.length || ids.some((id) => !Number.isInteger(Number(id)))) {
-    return response.status(400).json({ error: 'Valid employer IDs are required.' });
-  }
+  if (!ids.length || ids.some((id) => !Number.isInteger(Number(id)))) return response.status(400).json({ error: 'Valid employer IDs are required.' });
 
   const { error } = await supabaseDatabase
     .from('employers')
@@ -141,14 +123,5 @@ app.delete('/api/employers', async (request, response) => {
 
   return response.status(204).send();
 });
-
-app.use(express.static(__dirname));
-
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Frontend: http://localhost:${PORT}`);
-    console.log(`Backend:  http://localhost:${PORT}/api/health`);
-  });
-}
 
 module.exports = app;
