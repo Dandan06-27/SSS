@@ -14,6 +14,19 @@ const supabaseDatabase = supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY
   })
   : supabase;
 
+const RBAC_ALLOWED_ROLES = ['Super Admin', 'Admin', 'Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'];
+
+const validateRbacLogin = (profile, allowedRoles = RBAC_ALLOWED_ROLES) => {
+  if (!profile) return { valid: false, code: 'ACCOUNT_NOT_FOUND' };
+  if (profile.is_active === false || profile.isActive === false) return { valid: false, code: 'ACCOUNT_INACTIVE' };
+
+  const role = profile.role || profile.user_role || null;
+  if (!role) return { valid: false, code: 'ROLE_NOT_FOUND' };
+  if (!allowedRoles.includes(role)) return { valid: false, code: 'ROLE_NOT_ALLOWED' };
+
+  return { valid: true, role };
+};
+
 if (!supabase) {
   console.warn('Supabase is not configured. Add credentials to environment to enable employer persistence.');
 }
@@ -25,21 +38,59 @@ app.get('/api/health', (_request, response) => {
 });
 
 app.post('/api/auth/login', async (request, response) => {
-  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  if (!supabase || !supabaseDatabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
-  const email = String(request.body?.email || '').trim().toLowerCase();
+  const loginIdentifier = String(request.body?.email || request.body?.username || '').trim().toLowerCase();
   const password = String(request.body?.password || '');
-  if (!email || !password) return response.status(400).json({ error: 'Email and password are required.' });
+  if (!loginIdentifier || !password) return response.status(400).json({ error: 'Email/username and password are required.' });
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) return response.status(401).json({ error: 'Invalid email or password.' });
+  const lookupField = loginIdentifier.includes('@') ? 'email' : 'username';
+  const { data: profileData, error: profileError } = await supabaseDatabase
+    .from('profiles')
+    .select('*')
+    .eq(lookupField, loginIdentifier)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('Profile lookup error:', profileError);
+    return response.status(500).json({ error: 'Unable to verify account access.' });
+  }
+
+  const profile = profileData;
+  const profileValidation = validateRbacLogin(profile, RBAC_ALLOWED_ROLES);
+  if (!profileValidation.valid) {
+    const accountErrors = {
+      ACCOUNT_NOT_FOUND: 'No active account was found for that username/email.',
+      ACCOUNT_INACTIVE: 'This account is inactive and cannot sign in.',
+      ROLE_NOT_FOUND: 'This account does not have a valid access role.',
+      ROLE_NOT_ALLOWED: 'This account does not have permission to access this system.',
+    };
+
+    return response.status(profileValidation.code === 'ACCOUNT_NOT_FOUND' ? 401 : 403).json({
+      error: accountErrors[profileValidation.code] || 'Access denied.',
+      code: profileValidation.code,
+    });
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: profile.email,
+    password,
+  });
+
+  if (error || !data.user) {
+    return response.status(401).json({ error: 'Invalid email or password.' });
+  }
+
+  if (data.user.id !== profile.id) {
+    return response.status(403).json({ error: 'User account does not match the authorized profile.', code: 'PROFILE_MISMATCH' });
+  }
 
   return response.json({
     user: {
       id: data.user.id,
-      email: data.user.email,
-      username: data.user.user_metadata?.username || data.user.email,
-      role: data.user.app_metadata?.role || null,
+      email: profile.email,
+      username: profile.username || profile.email,
+      role: profile.role,
       accessToken: data.session?.access_token || null,
     },
   });
@@ -125,3 +176,4 @@ app.delete('/api/employers', async (request, response) => {
 });
 
 module.exports = app;
+module.exports.validateRbacLogin = validateRbacLogin;
