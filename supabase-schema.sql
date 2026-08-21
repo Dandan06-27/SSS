@@ -8,11 +8,12 @@ begin
 end;
 $$;
 
-create table public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
+create table if not exists public.users (
+  id uuid primary key default gen_random_uuid(),
   email text not null unique,
   username text not null unique,
   full_name text,
+  password_hash text not null,
   role text not null check (role in ('Super Admin', 'Admin', 'Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3', 'User')),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
@@ -37,32 +38,19 @@ create table public.employers (
 );
 
 create index employers_assigned_view_idx on public.employers (assigned_view);
-create index profiles_role_idx on public.profiles (role);
-create index profiles_username_idx on public.profiles (username);
+create index users_role_idx on public.users (role);
+create index users_username_idx on public.users (username);
 
-alter table public.profiles enable row level security;
+alter table public.users enable row level security;
 alter table public.employers enable row level security;
 
-create policy "Users can read their own profile" on public.profiles
-  for select using (auth.uid() = id);
+create policy "Users can read their own account" on public.users
+  for select using (false);
 
-create policy "Admins can read all profiles" on public.profiles
-  for select using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role in ('Super Admin', 'Admin')
-    )
-  );
+create policy "Admins can read all users" on public.users
+  for select using (false);
 
-create policy "Admins can update profiles" on public.profiles
-  for update using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role in ('Super Admin', 'Admin')
-    )
-  );
-
-create trigger set_profiles_updated_at
-before update on public.profiles
+create trigger set_users_updated_at
+before update on public.users
 for each row
 execute procedure public.set_updated_at();
