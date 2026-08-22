@@ -183,7 +183,7 @@ const employerFields = [
 ];
 
 const amountFieldIndexes = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
-const formatPeso = (value) => `₱${Number(value || 0).toFixed(2)}`;
+const formatPeso = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const parseAmount = (value) => Number(String(value || 0).replace(/[₱,]/g, ''));
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
