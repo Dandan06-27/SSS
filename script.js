@@ -182,6 +182,10 @@ const employerFields = [
   'status',
 ];
 
+const amountFieldIndexes = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
+const formatPeso = (value) => `₱${Number(value || 0).toFixed(2)}`;
+const parseAmount = (value) => Number(String(value || 0).replace(/[₱,]/g, ''));
+
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
   .map((row) => [...row.cells].map((cell) => cell.textContent.trim()));
 
@@ -189,11 +193,11 @@ const getDashboardMetrics = (values) => {
   const total = values.length;
   const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
   const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const billed = values.reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
   const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
 
@@ -214,7 +218,7 @@ const refreshMainDashboard = () => {
   const masterFileMetrics = getDashboardMetrics(getTableEmployers('MasterFile'));
   Object.entries(masterFileMetrics).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-main-metric="${name}"]`);
-    if (metric) metric.textContent = value;
+    if (metric) metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
   });
   ['settled', 'unsettled'].forEach((name) => {
     const metric = document.querySelector(`[data-status-metric="${name}"]`);
@@ -229,7 +233,7 @@ const refreshMainDashboard = () => {
     const row = document.querySelector(`[data-branch-row="${viewName}"]`);
     Object.entries(metrics).forEach(([name, value]) => {
       const metric = row?.querySelector(`[data-branch-metric="${name}"]`);
-      if (metric) metric.textContent = value;
+      if (metric) metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
     });
   });
 
@@ -240,14 +244,14 @@ const refreshMainDashboard = () => {
   branchTotals.completion = `${branchTotals.total ? ((branchTotals.settled / branchTotals.total) * 100).toFixed(2) : '0.00'}%`;
   Object.entries(branchTotals).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-branch-total="${name}"]`);
-    if (metric) metric.textContent = ['billed', 'unsettledAmount'].includes(name) ? value.toFixed(2) : value;
+    if (metric) metric.textContent = ['billed', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
   });
   const leadingBranch = branchMetrics.reduce((leading, branch) => (
     branch.metrics.total > leading.metrics.total ? branch : leading
   ));
   document.querySelector('[data-insight="leadingBranch"]').textContent = `${leadingBranch.viewName} currently has the most encoded records (${leadingBranch.metrics.total}).`;
   document.querySelector('[data-insight="completion"]').textContent = `Overall completion rate: ${masterFileMetrics.completion}`;
-  document.querySelector('[data-insight="billing"]').textContent = `Total billed: P${masterFileMetrics.billed} | Unsettled: P${masterFileMetrics.unsettledAmount}`;
+  document.querySelector('[data-insight="billing"]').textContent = `Total billed: ${formatPeso(masterFileMetrics.billed)} | Unsettled: ${formatPeso(masterFileMetrics.unsettledAmount)}`;
   document.querySelector('[data-insight="settlement"]').textContent = `Settled: ${masterFileMetrics.settled} | Unsettled: ${masterFileMetrics.unsettled}`;
   document.querySelector('[data-insight="registration"]').textContent = `Registered: ${masterFileMetrics.registered} | Not Yet Registered: ${masterFileMetrics.unregistered}`;
   refreshCharts();
@@ -256,7 +260,7 @@ const refreshMainDashboard = () => {
 const refreshCharts = () => {
   if (!pieChart || !barChart || !groupedBarChart) return;
 
-  const readMetric = (selector) => Number(document.querySelector(selector)?.textContent.replace('%', '') || 0);
+  const readMetric = (selector) => parseAmount(document.querySelector(selector)?.textContent.replace('%', ''));
   const branchNames = ['AO1', 'AO2', 'AO3'];
   const branchMetrics = branchNames.map((viewName) => ({
     total: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="total"]`),
@@ -380,7 +384,8 @@ const openTableDashboard = (viewName) => {
   const metrics = getDashboardMetrics(getTableEmployers(viewName));
   tableDashboardTitle.textContent = `${viewName.toUpperCase()} DASHBOARD`;
   Object.entries(metrics).forEach(([name, value]) => {
-    tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`).textContent = value;
+    const metric = tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`);
+    metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
   });
   tableDashboardModal.hidden = false;
   tableDashboardClose.focus();
@@ -472,9 +477,9 @@ const addEmployerToTable = (viewName, rowValues, employerId) => {
     targetBody.appendChild(targetRow);
   }
 
-  targetRow.replaceChildren(...rowValues.map((value) => {
+  targetRow.replaceChildren(...rowValues.map((value, index) => {
     const cell = document.createElement('td');
-    cell.textContent = value || '';
+    cell.textContent = amountFieldIndexes.has(index) ? formatPeso(value) : value || '';
     return cell;
   }));
   targetRow.dataset.employerId = String(employerId);
