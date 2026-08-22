@@ -5,6 +5,7 @@
   "description": "AMS SSS monthly operations dashboard",
   "scripts": {
     "build": "echo \"No build needed\"",
+    "start": "node api/server.js",
     "dev": "node --watch api/server.js"
   },
   "dependencies": {

@@ -2,6 +2,7 @@ let pendingDelete = null;
 let pieChart;
 let barChart;
 let groupedBarChart;
+let editingEmployerId = null;
 const authScreen = document.getElementById('authScreen');
 const dashboardShell = document.getElementById('dashboardShell');
 const loginForm = document.getElementById('loginForm');
@@ -17,7 +18,7 @@ const officerView = document.getElementById('officerView');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
 
-const isOfficerRole = (role) => ['Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'].includes(role);
+const isOfficerRole = (role) => ['Account Officer 1', 'Account Officer 2', 'Account Officer 3'].includes(role);
 
 const showAuthForm = (formName) => {
   const isRegister = formName === 'register';
@@ -34,7 +35,7 @@ const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
   const officerMode = isOfficerRole(account.role);
   pageWrapper.classList.toggle('officer-mode', officerMode);
-  pageWrapper.dataset.officerView = officerMode ? account.role.replace('Assistant Officer ', 'AO') : '';
+  pageWrapper.dataset.officerView = officerMode ? account.role.replace('Account Officer ', 'AO') : '';
   officerView.hidden = !officerMode;
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
 
@@ -158,13 +159,26 @@ const employerFields = [
   'employer_number',
   'employer_name',
   'address',
+  'employee_count',
   'principal',
-  'penalty',
   'interest',
+  'penalty',
   'total_amount',
+  'payment_principal',
+  'payment_interest',
+  'payment_penalty',
+  'payment_total',
   'billing_date',
-  'coverage_date',
   'soa_date',
+  'soa2_date',
+  'soa3_date',
+  'coverage_date',
+  'legal_referral_date',
+  'demand_letter_date',
+  'demand_letter_received_date',
+  'handling_lawyer',
+  'docket_number',
+  'case_date',
   'status',
 ];
 
@@ -173,15 +187,15 @@ const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-
 
 const getDashboardMetrics = (values) => {
   const total = values.length;
-  const settled = values.filter((row) => row[10].toLowerCase() === 'settled').length;
-  const unsettled = values.filter((row) => row[10].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const settledAmount = values.filter((row) => row[10].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const unsettledAmount = values.filter((row) => row[10].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const registered = values.filter((row) => ['registed', 'registered'].includes(row[10].toLowerCase())).length;
-  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[10].toLowerCase())).length;
+  const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
+  const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
+  const billed = values.reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
+    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
+    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
+  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
 
   return {
     total,
@@ -281,8 +295,60 @@ const openEmployerModal = (viewName) => {
   employerForm.elements.employerNumber.focus();
 };
 
+const closeEditMode = () => {
+  editingEmployerId = null;
+  employerForm.querySelector('.edit-only-fields').hidden = true;
+  employerForm.reset();
+};
+
+const openEditEmployerModal = (viewName) => {
+  if (currentUser?.role !== 'Super Admin') return;
+  const view = document.querySelector(`[data-ao-view="${viewName}"]`);
+  const selectedRows = [...view.querySelectorAll('tbody tr.is-selected[data-employer-id]')];
+  if (selectedRows.length !== 1) return;
+
+  const cells = [...selectedRows[0].cells].map((cell) => cell.textContent.trim());
+  editingEmployerId = selectedRows[0].dataset.employerId;
+  employerForm.elements.assignedView.value = viewName === 'MasterFile' ? '' : viewName;
+  employerForm.elements.employerNumber.value = cells[0];
+  employerForm.elements.employerName.value = cells[1];
+  employerForm.elements.address.value = cells[2];
+  employerForm.elements.employeeCount.value = cells[3];
+  employerForm.elements.principal.value = cells[4];
+  employerForm.elements.interest.value = cells[5];
+  employerForm.elements.penalty.value = cells[6];
+  employerForm.elements.totalAmount.value = cells[7];
+  employerForm.elements.paymentPrincipal.value = cells[8];
+  employerForm.elements.paymentInterest.value = cells[9];
+  employerForm.elements.paymentPenalty.value = cells[10];
+  employerForm.elements.paymentTotal.value = cells[11];
+  employerForm.elements.billingDate.value = cells[12];
+  employerForm.elements.soaDate.value = cells[13];
+  employerForm.elements.soa2Date.value = cells[14];
+  employerForm.elements.soa3Date.value = cells[15];
+  employerForm.elements.coverageDate.value = cells[16];
+  employerForm.elements.legalReferralDate.value = cells[17];
+  employerForm.elements.demandLetterDate.value = cells[18];
+  employerForm.elements.demandLetterReceivedDate.value = cells[19];
+  employerForm.elements.handlingLawyer.value = cells[20];
+  employerForm.elements.docketNumber.value = cells[21];
+  employerForm.elements.caseDate.value = cells[22];
+  employerForm.elements.status.value = cells[23];
+  employerForm.querySelector('.edit-only-fields').hidden = false;
+  modalTitle.textContent = `Edit Employer Data - ${viewName}`;
+  employerModal.hidden = false;
+  employerForm.elements.employerNumber.focus();
+};
+
 const closeEmployerModal = () => {
   employerModal.hidden = true;
+  closeEditMode();
+};
+
+const syncEditDataButton = (view) => {
+  const editDataButton = view.querySelector('.table-edit-data-btn');
+  const selectedCount = view.querySelectorAll('tbody tr.is-selected[data-employer-id]').length;
+  editDataButton.hidden = !(view.classList.contains('is-editing') && currentUser?.role === 'Super Admin' && selectedCount === 1);
 };
 
 const syncOfficerFormLayout = () => {
@@ -290,9 +356,11 @@ const syncOfficerFormLayout = () => {
   const closeButton = employerFormShell.querySelector('.modal-close-btn');
 
   if (isOfficerRole(currentUser?.role)) {
-    const officerViewName = currentUser.role.replace('Assistant Officer ', 'AO');
+    const officerViewName = currentUser.role.replace('Account Officer ', 'AO');
     officerFormMount.appendChild(employerFormShell);
     employerFormShell.classList.add('officer-form');
+    employerForm.querySelector('.edit-only-fields').hidden = true;
+    editingEmployerId = null;
     closeButton.hidden = true;
     modalTitle.id = 'officerFormTitle';
     employerForm.elements.assignedView.value = officerViewName;
@@ -423,6 +491,7 @@ const setTableEditMode = (viewName, isEditing) => {
   view.classList.toggle('is-editing', isEditing);
   view.querySelector('.table-edit-btn').textContent = isEditing ? 'Cancel edit' : 'Edit mode';
   view.querySelector('.table-delete-btn').hidden = !isEditing;
+  syncEditDataButton(view);
   view.querySelectorAll('tbody tr').forEach((row) => row.classList.remove('is-selected'));
 };
 
@@ -506,14 +575,43 @@ employerForm.addEventListener('submit', async (event) => {
     status: formData.get('status'),
   };
 
-  const response = await fetch('/api/employers', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(employer),
-  });
+  if (editingEmployerId) {
+    delete employer.assigned_view;
+    Object.assign(employer, {
+      employee_count: Number(formData.get('employeeCount') || 0),
+      payment_principal: Number(formData.get('paymentPrincipal') || 0),
+      payment_interest: Number(formData.get('paymentInterest') || 0),
+      payment_penalty: Number(formData.get('paymentPenalty') || 0),
+      payment_total: Number(formData.get('paymentTotal') || 0),
+      soa2_date: formData.get('soa2Date') || null,
+      soa3_date: formData.get('soa3Date') || null,
+      legal_referral_date: formData.get('legalReferralDate') || null,
+      demand_letter_date: formData.get('demandLetterDate') || null,
+      demand_letter_received_date: formData.get('demandLetterReceivedDate') || null,
+      handling_lawyer: formData.get('handlingLawyer') || null,
+      docket_number: formData.get('docketNumber') || null,
+      case_date: formData.get('caseDate') || null,
+    });
+  }
+
+  let response;
+  try {
+    response = await fetch('/api/employers', {
+      method: editingEmployerId ? 'PATCH' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(editingEmployerId && currentUser?.accessToken ? { Authorization: `Bearer ${currentUser.accessToken}` } : {}),
+      },
+      body: JSON.stringify(editingEmployerId ? { id: editingEmployerId, employer } : employer),
+    });
+  } catch (_error) {
+    alert('Unable to connect to the server while saving employer data.');
+    return;
+  }
 
   if (!response.ok) {
-    alert('Unable to save employer. Check the server connection.');
+    const error = await response.json().catch(() => null);
+    alert(error?.error || `Unable to save employer (HTTP ${response.status}).`);
     return;
   }
 
@@ -522,11 +620,10 @@ employerForm.addEventListener('submit', async (event) => {
   addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id);
   refreshMainDashboard();
   closeEmployerModal();
-  employerForm.reset();
 });
 
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
-  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(11), '</tr>').repeat(21);
+  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(24), '</tr>').repeat(21);
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {
@@ -540,6 +637,10 @@ document.querySelectorAll('[data-table-delete]').forEach((button) => {
   button.addEventListener('click', () => openDeleteConfirmation(button.dataset.tableDelete));
 });
 
+document.querySelectorAll('[data-table-edit-data]').forEach((button) => {
+  button.addEventListener('click', () => openEditEmployerModal(button.dataset.tableEditData));
+});
+
 deleteConfirmApprove.addEventListener('click', deleteSelectedRows);
 deleteConfirmCancel.addEventListener('click', closeDeleteConfirmation);
 deleteConfirmClose.addEventListener('click', closeDeleteConfirmation);
@@ -548,6 +649,7 @@ document.addEventListener('click', (event) => {
   const row = event.target.closest('.ao-table tbody tr');
   if (!row || !row.closest('.ao-view.is-editing') || !row.dataset.employerId) return;
   row.classList.toggle('is-selected');
+  syncEditDataButton(row.closest('.ao-view'));
 });
 
 loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
@@ -557,6 +659,7 @@ document.addEventListener('click', (event) => {
     document.querySelectorAll('.ao-table tbody tr.is-selected').forEach((selectedRow) => {
       selectedRow.classList.remove('is-selected');
     });
+    document.querySelectorAll('.ao-view.is-editing').forEach((view) => syncEditDataButton(view));
   }
 });
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('node:crypto');
+const path = require('node:path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -16,7 +17,7 @@ const supabaseDatabase = supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY
   : supabase;
 const APP_SESSION_SECRET = process.env.APP_SESSION_SECRET || 'sss-local-dev-secret-change-me';
 
-const RBAC_ALLOWED_ROLES = ['Super Admin', 'Admin', 'Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'];
+const RBAC_ALLOWED_ROLES = ['Super Admin', 'Admin', 'Account Officer 1', 'Account Officer 2', 'Account Officer 3'];
 
 const hashPassword = (password) => crypto.createHash('sha256').update(String(password)).digest('hex');
 
@@ -47,11 +48,13 @@ const verifyAppToken = (token) => {
   }
 };
 
+const normalizeRole = (role) => String(role || '').replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1');
+
 const validateRbacLogin = (profile, allowedRoles = RBAC_ALLOWED_ROLES) => {
   if (!profile) return { valid: false, code: 'ACCOUNT_NOT_FOUND' };
   if (profile.is_active === false || profile.isActive === false) return { valid: false, code: 'ACCOUNT_INACTIVE' };
 
-  const role = profile.role || profile.user_role || null;
+  const role = normalizeRole(profile.role || profile.user_role || null);
   if (!role) return { valid: false, code: 'ROLE_NOT_FOUND' };
   if (!allowedRoles.includes(role)) return { valid: false, code: 'ROLE_NOT_ALLOWED' };
 
@@ -83,6 +86,7 @@ if (!supabase) {
 }
 
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..')));
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok' });
@@ -117,6 +121,8 @@ app.post('/api/auth/login', async (request, response) => {
       code: validation.code,
     });
   }
+
+  userRecord.role = validation.role;
 
   if (!userRecord.password_hash || hashPassword(password) !== userRecord.password_hash) {
     return response.status(401).json({ error: 'Invalid email or password.' });
@@ -201,6 +207,41 @@ app.post('/api/employers', async (request, response) => {
   return response.status(201).json(data);
 });
 
+app.patch('/api/employers', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  if (!(await requireSuperAdmin(request, response))) return;
+
+  const id = Number(request.body?.id);
+  const submittedEmployer = request.body?.employer;
+  if (!Number.isInteger(id) || !submittedEmployer || !submittedEmployer.employer_number || !submittedEmployer.employer_name || !submittedEmployer.status) {
+    return response.status(400).json({ error: 'Valid employer data is required.' });
+  }
+
+  const employerFields = [
+    'employer_number', 'employer_name', 'address', 'principal', 'penalty', 'interest', 'total_amount',
+    'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
+    'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
+    'demand_letter_received_date', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+  ];
+  const employer = Object.fromEntries(employerFields
+    .filter((field) => Object.prototype.hasOwnProperty.call(submittedEmployer, field))
+    .map((field) => [field, submittedEmployer[field]]));
+
+  const { data, error } = await supabaseDatabase
+    .from('employers')
+    .update(employer)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to update employer.' });
+  }
+
+  return response.json(data);
+});
+
 app.delete('/api/employers', async (request, response) => {
   if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
@@ -222,3 +263,10 @@ app.delete('/api/employers', async (request, response) => {
 
 module.exports = app;
 module.exports.validateRbacLogin = validateRbacLogin;
+
+if (require.main === module) {
+  const port = Number(process.env.PORT) || 3002;
+  app.listen(port, '127.0.0.1', () => {
+    console.log(`SSS dashboard running at http://localhost:${port}`);
+  });
+}
