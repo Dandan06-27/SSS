@@ -15,6 +15,8 @@ const logoutButton = document.getElementById('logoutButton');
 const pageWrapper = document.getElementById('dashboardShell');
 const officerView = document.getElementById('officerView');
 let currentUser = null;
+const AUTH_TRANSITION_MS = 1200;
+let editingEmployerId = null;
 
 const isOfficerRole = (role) => ['Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'].includes(role);
 
@@ -29,19 +31,32 @@ const showAuthForm = (formName) => {
   });
 };
 
-const showDashboard = (account) => {
+const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
-  authScreen.hidden = true;
-  dashboardShell.hidden = false;
   const officerMode = isOfficerRole(account.role);
   pageWrapper.classList.toggle('officer-mode', officerMode);
   pageWrapper.dataset.officerView = officerMode ? account.role.replace('Assistant Officer ', 'AO') : '';
   officerView.hidden = !officerMode;
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
+
+  if (animate) {
+    authScreen.hidden = false;
+    authScreen.classList.add('is-authenticating');
+    window.setTimeout(() => {
+      authScreen.classList.remove('is-authenticating');
+      authScreen.hidden = true;
+      dashboardShell.hidden = false;
+    }, AUTH_TRANSITION_MS);
+    return;
+  }
+
+  authScreen.hidden = true;
+  dashboardShell.hidden = false;
 };
 
 const signOut = () => {
   currentUser = null;
+  authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
   delete pageWrapper.dataset.officerView;
   officerView.hidden = true;
@@ -82,8 +97,9 @@ loginForm.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
 
     sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
-    showDashboard(result.user);
+    showDashboard(result.user, { animate: true });
     syncOfficerFormLayout();
+    loadCalendarEvents().catch((error) => console.error(error));
   } catch (error) {
     loginError.textContent = error.message;
     loginError.hidden = false;
@@ -139,11 +155,193 @@ const deleteConfirmError = document.getElementById('deleteConfirmError');
 const deleteConfirmApprove = document.getElementById('deleteConfirmApprove');
 const deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
 const deleteConfirmClose = document.getElementById('deleteConfirmClose');
+const calendarOpenButton = document.getElementById('calendarOpenButton');
+const calendarModal = document.getElementById('calendarModal');
+const calendarClose = document.getElementById('calendarClose');
+const calendarPrevious = document.getElementById('calendarPrevious');
+const calendarNext = document.getElementById('calendarNext');
+const calendarAddEvent = document.getElementById('calendarAddEvent');
+const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+const calendarGrid = document.getElementById('calendarGrid');
+const calendarEventModal = document.getElementById('calendarEventModal');
+const calendarEventClose = document.getElementById('calendarEventClose');
+const calendarEventForm = document.getElementById('calendarEventForm');
+const calendarError = document.getElementById('calendarError');
+const calendarSummaryModal = document.getElementById('calendarSummaryModal');
+const calendarSummaryClose = document.getElementById('calendarSummaryClose');
+const calendarSummary = document.getElementById('calendarSummary');
+const calendarNotificationModal = document.getElementById('calendarNotificationModal');
+const calendarNotificationClose = document.getElementById('calendarNotificationClose');
+const calendarNotificationOpen = document.getElementById('calendarNotificationOpen');
+const calendarNotificationDismiss = document.getElementById('calendarNotificationDismiss');
+const calendarNotificationSummary = document.getElementById('calendarNotificationSummary');
 const masterFileSearch = document.getElementById('masterFileSearch');
 const masterFileDate = document.getElementById('masterFileDate');
 const masterFileAo = document.getElementById('masterFileAo');
 const masterFileStatus = document.getElementById('masterFileStatus');
-const masterFileRecordCount = document.getElementById('masterFileRecordCount');
+let calendarEvents = [];
+let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
+const formatEventTime = (time) => time ? time.slice(0, 5) : '';
+
+const updateEmployerTotal = () => {
+  const principal = Number(employerForm.elements.principal.value || 0);
+  const penalty = Number(employerForm.elements.penalty.value || 0);
+  const interest = Number(employerForm.elements.interest.value || 0);
+  employerForm.elements.totalAmount.value = (principal + penalty + interest).toFixed(2);
+};
+
+['principal', 'penalty', 'interest'].forEach((fieldName) => {
+  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotal);
+});
+
+const showCurrentDateNotification = () => {
+  const today = formatCalendarDate(new Date());
+  const todaysEvents = calendarEvents.filter((event) => event.event_date === today);
+  if (!todaysEvents.length) return;
+  calendarNotificationSummary.replaceChildren();
+  todaysEvents.forEach((event) => {
+    const eventSummary = document.createElement('article');
+    eventSummary.className = 'calendar-notification-event';
+    eventSummary.innerHTML = `<h3>${event.title}</h3><p>${formatEventTime(event.start_time)}-${formatEventTime(event.end_time)}</p><p>${event.description || 'No description provided.'}</p>`;
+    calendarNotificationSummary.appendChild(eventSummary);
+  });
+  calendarNotificationModal.hidden = false;
+  calendarNotificationClose.focus();
+};
+
+const renderCalendar = () => {
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  calendarGrid.replaceChildren();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let index = 0; index < firstDay + daysInMonth; index += 1) {
+    const dayCell = document.createElement('div');
+    dayCell.className = 'calendar-day';
+    if (index < firstDay) {
+      dayCell.classList.add('calendar-day-empty');
+    } else {
+      const day = index - firstDay + 1;
+      const date = formatCalendarDate(new Date(year, month, day));
+      dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
+      calendarEvents.filter((event) => event.event_date === date).forEach((event) => {
+        const eventButton = document.createElement('button');
+        eventButton.className = 'calendar-event';
+        eventButton.type = 'button';
+        eventButton.textContent = event.title;
+        eventButton.addEventListener('click', () => {
+          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${event.event_date} | ${formatEventTime(event.start_time)}-${formatEventTime(event.end_time)}</p><p>${event.description || 'No description provided.'}</p>`;
+          calendarSummaryModal.hidden = false;
+          calendarSummaryClose.focus();
+        });
+        dayCell.appendChild(eventButton);
+      });
+    }
+    calendarGrid.appendChild(dayCell);
+  }
+};
+
+const loadCalendarEvents = async () => {
+  if (!currentUser) return;
+  const response = await fetch('/api/calendar-events', { headers: { Authorization: `Bearer ${currentUser.accessToken}` } });
+  if (!response.ok) throw new Error('Unable to load calendar events.');
+  calendarEvents = await response.json();
+  renderCalendar();
+  showCurrentDateNotification();
+};
+
+const closeCalendar = () => { calendarModal.hidden = true; };
+const closeCalendarEvent = () => { calendarEventModal.hidden = true; };
+const closeCalendarSummary = () => { calendarSummaryModal.hidden = true; };
+const closeCalendarNotification = () => { calendarNotificationModal.hidden = true; };
+
+calendarOpenButton.addEventListener('click', () => {
+  renderCalendar();
+  calendarModal.hidden = false;
+  calendarClose.focus();
+});
+calendarClose.addEventListener('click', closeCalendar);
+calendarPrevious.addEventListener('click', () => {
+  calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+  renderCalendar();
+});
+calendarNext.addEventListener('click', () => {
+  calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+  renderCalendar();
+});
+calendarAddEvent.addEventListener('click', () => {
+  calendarEventForm.reset();
+  calendarError.hidden = true;
+  calendarEventModal.hidden = false;
+  calendarEventForm.elements.date.value = formatCalendarDate(calendarMonth);
+  calendarEventForm.elements.title.focus();
+});
+calendarEventClose.addEventListener('click', closeCalendarEvent);
+calendarSummaryClose.addEventListener('click', closeCalendarSummary);
+calendarNotificationClose.addEventListener('click', closeCalendarNotification);
+calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
+calendarNotificationOpen.addEventListener('click', () => {
+  closeCalendarNotification();
+  renderCalendar();
+  calendarModal.hidden = false;
+  calendarClose.focus();
+});
+
+calendarEventForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  calendarError.hidden = true;
+  const formData = new FormData(calendarEventForm);
+  const startTime = formData.get('startTime');
+  const endTime = formData.get('endTime');
+  if (endTime <= startTime) {
+    calendarError.textContent = 'End time must be after start time.';
+    calendarError.hidden = false;
+    return;
+  }
+
+  const submitButton = calendarEventForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const response = await fetch('/api/calendar-events', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${currentUser.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: formData.get('title'),
+        date: formData.get('date'),
+        startTime,
+        endTime,
+        description: formData.get('description'),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Unable to save calendar event.');
+    calendarEvents.push(result);
+    closeCalendarEvent();
+    renderCalendar();
+    if (result.event_date === formatCalendarDate(new Date())) showCurrentDateNotification();
+  } catch (error) {
+    calendarError.textContent = error.message;
+    calendarError.hidden = false;
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+calendarModal.addEventListener('click', (event) => {
+  if (event.target === calendarModal) closeCalendar();
+});
+calendarEventModal.addEventListener('click', (event) => {
+  if (event.target === calendarEventModal) closeCalendarEvent();
+});
+calendarSummaryModal.addEventListener('click', (event) => {
+  if (event.target === calendarSummaryModal) closeCalendarSummary();
+});
+calendarNotificationModal.addEventListener('click', (event) => {
+  if (event.target === calendarNotificationModal) closeCalendarNotification();
+});
 
 const employerFields = [
   'employer_number',
@@ -202,7 +400,6 @@ const filterMasterFile = () => {
   const selectedAo = masterFileAo.value;
   const selectedStatus = normalizeStatus(masterFileStatus.value);
   const rows = [...document.querySelectorAll('[data-ao-view="MasterFile"] tbody tr[data-employer-id]')];
-  let visibleCount = 0;
 
   rows.forEach((row) => {
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
@@ -213,10 +410,7 @@ const filterMasterFile = () => {
       || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[23]?.textContent || '') === selectedStatus);
     const isVisible = matchesQuery && matchesDate && matchesAo && matchesStatus;
     row.hidden = !isVisible;
-    if (isVisible) visibleCount += 1;
   });
-
-  masterFileRecordCount.textContent = `${visibleCount} RECORD${visibleCount === 1 ? '' : 'S'}`;
 };
 
 const getDashboardMetrics = (values) => {
@@ -323,8 +517,57 @@ const refreshCharts = () => {
 
 const openEmployerModal = (viewName) => {
   if (isOfficerRole(currentUser?.role)) return;
+  editingEmployerId = null;
+  employerForm.reset();
   employerForm.elements.assignedView.value = viewName;
+  employerForm.classList.remove('is-editing');
+  updateEmployerTotal();
   modalTitle.textContent = `Employer's Data Form - ${viewName}`;
+  employerForm.querySelector('.employer-submit-btn').textContent = 'SUBMIT';
+  employerModal.hidden = false;
+  employerForm.elements.employerNumber.focus();
+};
+
+const openEmployerEdit = (row) => {
+  const employer = JSON.parse(row.dataset.employer || '{}');
+  if (!employer.id) return;
+  editingEmployerId = employer.id;
+  employerForm.reset();
+  Object.entries({
+    employerId: employer.id,
+    assignedView: employer.assigned_view,
+    employerNumber: employer.employer_number,
+    employerName: employer.employer_name,
+    address: employer.address,
+    employeeCount: employer.employee_count,
+    principal: employer.principal,
+    penalty: employer.penalty,
+    interest: employer.interest,
+    totalAmount: employer.total_amount,
+    paymentPrincipal: employer.payment_principal,
+    paymentInterest: employer.payment_interest,
+    paymentPenalty: employer.payment_penalty,
+    paymentTotal: employer.payment_total,
+    billingDate: employer.billing_date,
+    soaDate: employer.soa_date,
+    soa2Date: employer.soa2_date,
+    soa3Date: employer.soa3_date,
+    coverageDate: employer.coverage_date,
+    legalReferralDate: employer.legal_referral_date,
+    demandLetterDate: employer.demand_letter_date,
+    demandLetterReceivedDate: employer.demand_letter_received_date,
+    handlingLawyer: employer.handling_lawyer,
+    docketNumber: employer.docket_number,
+    caseDate: employer.case_date,
+    personReceived: employer.person_received,
+    status: employer.status,
+  }).forEach(([field, value]) => {
+    if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
+  });
+  modalTitle.textContent = `Edit Employer's Data - ${employer.assigned_view}`;
+  employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
+  employerForm.classList.add('is-editing');
+  updateEmployerTotal();
   employerModal.hidden = false;
   employerForm.elements.employerNumber.focus();
 };
@@ -439,9 +682,10 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !tableDashboardModal.hidden) closeTableDashboard();
   if (event.key === 'Escape' && !orgChartModal.hidden) closeOrgChart();
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
+  if (event.key === 'Escape' && !calendarNotificationModal.hidden) closeCalendarNotification();
 });
 
-const addEmployerToTable = (viewName, rowValues, employerId, assignedView = viewName) => {
+const addEmployerToTable = (viewName, rowValues, employerId, assignedView = viewName, employer = null) => {
   const targetBody = document.querySelector(`[data-ao-view="${viewName}"] .ao-table tbody`);
   if (!targetBody) return false;
 
@@ -459,6 +703,7 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   }));
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
+  if (employer) targetRow.dataset.employer = JSON.stringify(employer);
   if (viewName === 'MasterFile') {
     const billingDateCell = targetRow.cells[12];
     if (billingDateCell) billingDateCell.dataset.date = rowValues[12] || '';
@@ -477,8 +722,16 @@ const setTableEditMode = (viewName, isEditing) => {
 
   view.classList.toggle('is-editing', isEditing);
   view.querySelector('.table-edit-btn').textContent = isEditing ? 'Cancel edit' : 'Edit mode';
+  view.querySelector('.table-edit-data-btn').hidden = !isEditing;
   view.querySelector('.table-delete-btn').hidden = !isEditing;
   view.querySelectorAll('tbody tr').forEach((row) => row.classList.remove('is-selected'));
+};
+
+const editSelectedEmployer = (viewName) => {
+  const view = document.querySelector(`[data-ao-view="${viewName}"]`);
+  const selectedRows = [...view.querySelectorAll('tbody tr.is-selected[data-employer-id]')];
+  if (selectedRows.length !== 1) return;
+  openEmployerEdit(selectedRows[0]);
 };
 
 const openDeleteConfirmation = (viewName) => {
@@ -538,8 +791,8 @@ const loadEmployers = async () => {
 
   const employers = await response.json();
   employers.forEach((employer) => {
-    addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id);
-    addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view);
+    addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id, employer.assigned_view, employer);
+    addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view, employer);
   });
 };
 
@@ -551,21 +804,38 @@ employerForm.addEventListener('submit', async (event) => {
     employer_number: formData.get('employerNumber'),
     employer_name: formData.get('employerName'),
     address: formData.get('address'),
+    employee_count: Number(formData.get('employeeCount') || 0),
     principal: Number(formData.get('principal') || 0),
     penalty: Number(formData.get('penalty') || 0),
     interest: Number(formData.get('interest') || 0),
-    total_amount: Number(formData.get('totalAmount') || 0),
+    total_amount: Number((
+      Number(formData.get('principal') || 0)
+      + Number(formData.get('penalty') || 0)
+      + Number(formData.get('interest') || 0)
+    ).toFixed(2)),
+    payment_principal: Number(formData.get('paymentPrincipal') || 0),
+    payment_interest: Number(formData.get('paymentInterest') || 0),
+    payment_penalty: Number(formData.get('paymentPenalty') || 0),
+    payment_total: Number(formData.get('paymentTotal') || 0),
     billing_date: formData.get('billingDate') || null,
     coverage_date: formData.get('coverageDate') || null,
     soa_date: formData.get('soaDate') || null,
+    soa2_date: formData.get('soa2Date') || null,
+    soa3_date: formData.get('soa3Date') || null,
+    legal_referral_date: formData.get('legalReferralDate') || null,
+    demand_letter_date: formData.get('demandLetterDate') || null,
+    demand_letter_received_date: formData.get('demandLetterReceivedDate') || null,
+    handling_lawyer: formData.get('handlingLawyer') || '',
+    docket_number: formData.get('docketNumber') || '',
+    case_date: formData.get('caseDate') || null,
     status: formData.get('status'),
     person_received: formData.get('personReceived') || '',
   };
 
   const response = await fetch('/api/employers', {
-    method: 'POST',
+    method: editingEmployerId ? 'PATCH' : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(employer),
+    body: JSON.stringify(editingEmployerId ? { id: editingEmployerId, employer } : employer),
   });
 
   if (!response.ok) {
@@ -574,10 +844,15 @@ employerForm.addEventListener('submit', async (event) => {
   }
 
   const savedEmployer = await response.json();
-  addEmployerToTable(savedEmployer.assigned_view, employerToRow(savedEmployer), savedEmployer.id);
-  addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view);
+  document.querySelectorAll(`tr[data-employer-id="${savedEmployer.id}"]`).forEach((row) => {
+    row.dataset.employer = JSON.stringify(savedEmployer);
+  });
+  addEmployerToTable(savedEmployer.assigned_view, employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
+  addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   refreshMainDashboard();
   closeEmployerModal();
+  editingEmployerId = null;
+  employerForm.classList.remove('is-editing');
   employerForm.reset();
 });
 
@@ -596,6 +871,10 @@ document.querySelectorAll('[data-table-delete]').forEach((button) => {
   button.addEventListener('click', () => openDeleteConfirmation(button.dataset.tableDelete));
 });
 
+document.querySelectorAll('[data-table-edit-data]').forEach((button) => {
+  button.addEventListener('click', () => editSelectedEmployer(button.dataset.tableEditData));
+});
+
 [masterFileSearch, masterFileDate, masterFileAo, masterFileStatus].forEach((control) => {
   control.addEventListener('input', filterMasterFile);
   control.addEventListener('change', filterMasterFile);
@@ -612,6 +891,7 @@ document.addEventListener('click', (event) => {
 });
 
 loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
+loadCalendarEvents().catch((error) => console.error(error));
 
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.ao-table') && !event.target.closest('.table-edit-btn')) {

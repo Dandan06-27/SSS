@@ -36,6 +36,52 @@ body {
   display: none;
 }
 
+.auth-screen.is-authenticating {
+  position: relative;
+  min-height: 100vh;
+  background: #173f78;
+  overflow: hidden;
+}
+
+.auth-screen.is-authenticating .auth-form-panel {
+  background: #173f78;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-screen.is-authenticating .auth-brand-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  min-height: 100vh;
+  animation: auth-brand-bounce 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes auth-brand-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+
+  68% {
+    transform: scale(0.97);
+  }
+
+  84% {
+    transform: scale(1.015);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .auth-brand-panel {
   display: grid;
   place-items: center;
@@ -280,7 +326,7 @@ body {
 
 .masterfile-filters {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) 180px 180px 180px auto;
+  grid-template-columns: minmax(260px, 1fr) 180px 180px 180px;
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
@@ -311,24 +357,9 @@ body {
   padding-left: 12px;
 }
 
-.masterfile-record-count {
-  padding: 9px 12px;
-  border: 1px solid #c8ddf5;
-  border-radius: 18px;
-  background: #eef6ff;
-  color: #214f87;
-  font-size: 11px;
-  font-weight: bold;
-  white-space: nowrap;
-}
-
 @media (max-width: 900px) {
   .masterfile-filters {
     grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr));
-  }
-
-  .masterfile-record-count {
-    justify-self: start;
   }
 }
 
@@ -344,7 +375,7 @@ body {
 .ao-table caption {
   position: relative;
   caption-side: top;
-  background: #000;
+  background: #737373;
   color: #fff;
   font-size: 16px;
   font-weight: bold;
@@ -362,11 +393,15 @@ body {
 }
 
 .ao-table caption .table-edit-btn {
-  right: 4px;
+  right: 188px;
+}
+
+.ao-table caption .table-edit-data-btn {
+  right: 90px;
 }
 
 .ao-table caption .table-delete-btn {
-  right: 90px;
+  right: 4px;
 }
 
 .ao-table th,
@@ -420,7 +455,7 @@ body {
 .ao-table .header-group-payment,
 .ao-table .header-group-demand,
 .ao-table .header-group-case {
-  border-left: 12px solid #050505;
+  border-left: 12px solid #07345f;
 }
 
 .ao-view[data-ao-view="MasterFile"] .ao-table tbody tr.is-due-date td {
@@ -429,7 +464,7 @@ body {
 
 .ao-table th {
   height: 23px;
-  background: #050505;
+  background: #07345f;
   color: #fff;
   font-size: 11px;
   font-weight: bold;
@@ -650,6 +685,212 @@ body {
   display: none;
 }
 
+.calendar-open-btn,
+.calendar-add-btn {
+  border: 0;
+  border-radius: 4px;
+  background: #2458a0;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.calendar-open-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 10px;
+}
+
+.calendar-open-btn:hover,
+.calendar-add-btn:hover {
+  background: #173f78;
+}
+
+.calendar-modal,
+.calendar-event-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: #f4f7fb;
+  border: 1px solid #152c42;
+  border-radius: 4px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+}
+
+.calendar-event-modal {
+  width: min(440px, 100%);
+}
+
+.calendar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #1a3a5c;
+  color: #fff;
+}
+
+.calendar-modal-header h2 {
+  font-size: 15px;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 12px;
+}
+
+.calendar-toolbar h3 {
+  flex: 1;
+  color: #173f78;
+  font-size: 18px;
+  text-align: center;
+}
+
+.calendar-nav-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #b8c7d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #173f78;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.calendar-add-btn {
+  padding: 9px 12px;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 18px;
+}
+
+.calendar-weekdays {
+  color: #667892;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  margin-top: 6px;
+  margin-bottom: 18px;
+  background: #cbd6e2;
+  border: 1px solid #cbd6e2;
+}
+
+.calendar-day {
+  min-height: 78px;
+  padding: 7px;
+  background: #fff;
+}
+
+.calendar-day-empty {
+  background: #edf1f5;
+}
+
+.calendar-day-number {
+  display: block;
+  margin-bottom: 5px;
+  color: #173f78;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.calendar-event {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  padding: 4px 5px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  background: #dbeeff;
+  color: #173f78;
+  cursor: pointer;
+  font-size: 10px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event-form,
+.calendar-summary {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  color: #29456b;
+  font-size: 11px;
+}
+
+.calendar-event-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.calendar-event-form input,
+.calendar-event-form textarea {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #cbd3dc;
+  border-radius: 4px;
+  background: #fff;
+  color: #132e50;
+  font: inherit;
+}
+
+.calendar-time-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.calendar-error {
+  color: #b42318;
+}
+
+.calendar-summary h3 {
+  color: #173f78;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.calendar-summary p {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.calendar-notification-event + .calendar-notification-event {
+  padding-top: 12px;
+  border-top: 1px solid #d8e0e8;
+}
+
+.calendar-notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 18px 18px;
+}
+
+.calendar-dismiss-btn {
+  padding: 9px 12px;
+  border: 1px solid #b8c7d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #29456b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
 .employer-modal {
   width: min(560px, 100%);
   max-height: min(760px, calc(100vh - 40px));
@@ -852,6 +1093,14 @@ body {
   padding: 24px 32px 28px;
 }
 
+.employer-form .edit-only {
+  display: none;
+}
+
+.employer-form.is-editing .edit-only {
+  display: grid;
+}
+
 .employer-form label {
   display: grid;
   grid-template-columns: minmax(170px, 1fr) minmax(220px, 1.5fr);
@@ -884,6 +1133,10 @@ body {
 .employer-form input[type="number"] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+.employer-form input[name="totalAmount"] {
+  opacity: 0.5;
 }
 
 .employer-form input[type="number"]::-webkit-inner-spin-button,

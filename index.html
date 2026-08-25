@@ -308,6 +308,7 @@
             <li data-insight="settlement">Settled: 0 | Unsettled: 0</li>
             <li data-insight="registration">Registered: 0 | Not Yet Registered: 0</li>
           </ul>
+          <button class="calendar-open-btn" id="calendarOpenButton" type="button">Open calendar</button>
         </div>
       </div>
     </section>
@@ -319,7 +320,7 @@
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
+            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO1" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
             <thead>
               <tr>
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
@@ -337,7 +338,7 @@
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
+            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO2" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
             <thead>
               <tr>
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
@@ -355,7 +356,7 @@
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
+            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO3" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
             <thead>
               <tr>
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
@@ -398,12 +399,11 @@
               <option value="Due Date">Due Date</option>
             </select>
           </label>
-          <span class="masterfile-record-count" id="masterFileRecordCount" aria-live="polite">0 RECORDS</span>
         </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
-            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
+            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="MasterFile" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
             <thead>
               <tr>
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
@@ -425,17 +425,31 @@
           <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
         </div>
         <form class="employer-form" id="employerForm">
+          <input type="hidden" name="employerId" value="">
           <input type="hidden" name="assignedView" value="">
           <label>Employer Number:<input name="employerNumber" type="text"></label>
           <label>Employer Name:<input name="employerName" type="text"></label>
           <label>Address:<input name="address" type="text"></label>
+          <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
           <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
           <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
           <label>Interest:<input name="interest" type="number" step="0.01" min="0"></label>
-          <label>Total Amount:<input name="totalAmount" type="number" step="0.01" min="0"></label>
+          <label>Total:<input name="totalAmount" type="number" step="0.01" min="0" disabled></label>
+          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0"></label>
           <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
           <label>SOA Date Served:<input name="soaDate" type="date"></label>
+          <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
+          <label class="edit-only">Date 3rd SOA (Served):<input name="soa3Date" type="date"></label>
           <label>Date of Coverage:<input name="coverageDate" type="date"></label>
+          <label class="edit-only">Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
+          <label class="edit-only">Demand Letter Date:<input name="demandLetterDate" type="date"></label>
+          <label class="edit-only">Demand Letter Received Date:<input name="demandLetterReceivedDate" type="date"></label>
+          <label class="edit-only">Handling Lawyer:<input name="handlingLawyer" type="text"></label>
+          <label class="edit-only">Docket #:<input name="docketNumber" type="text"></label>
+          <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
           <label>Person Received:<input name="personReceived" type="text"></label>
           <label>Status:
             <select name="status" required>
@@ -521,6 +535,69 @@
         <div class="delete-confirm-actions">
           <button class="delete-cancel-btn" id="deleteConfirmCancel" type="button">No, cancel</button>
           <button class="delete-approve-btn" id="deleteConfirmApprove" type="button">Yes, I'm sure</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarModal" hidden>
+      <section class="calendar-modal" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarTitle">CALENDAR</h2>
+          <button class="modal-close-btn" id="calendarClose" type="button" aria-label="Close calendar">&times;</button>
+        </div>
+        <div class="calendar-toolbar">
+          <button class="calendar-nav-btn" id="calendarPrevious" type="button" aria-label="Previous month">&#8592;</button>
+          <h3 id="calendarMonthLabel"></h3>
+          <button class="calendar-nav-btn" id="calendarNext" type="button" aria-label="Next month">&#8594;</button>
+          <button class="calendar-add-btn" id="calendarAddEvent" type="button">Add event</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarEventModal" hidden>
+      <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="calendarEventTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarEventTitle">ADD EVENT</h2>
+          <button class="modal-close-btn" id="calendarEventClose" type="button" aria-label="Close event form">&times;</button>
+        </div>
+        <form id="calendarEventForm" class="calendar-event-form">
+          <label>Event title<input name="title" type="text" required maxlength="120"></label>
+          <label>Date<input name="date" type="date" required></label>
+          <div class="calendar-time-fields">
+            <label>Start time<input name="startTime" type="time" required></label>
+            <label>End time<input name="endTime" type="time" required></label>
+          </div>
+          <label>Description<textarea name="description" rows="4"></textarea></label>
+          <p class="calendar-error" id="calendarError" role="alert" hidden></p>
+          <button class="calendar-add-btn" type="submit">Save event</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarSummaryModal" hidden>
+      <section class="calendar-event-modal" role="dialog" aria-modal="true" aria-labelledby="calendarSummaryTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarSummaryTitle">EVENT SUMMARY</h2>
+          <button class="modal-close-btn" id="calendarSummaryClose" type="button" aria-label="Close event summary">&times;</button>
+        </div>
+        <div class="calendar-summary" id="calendarSummary"></div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="calendarNotificationModal" hidden>
+      <section class="calendar-event-modal calendar-notification-modal" role="dialog" aria-modal="true" aria-labelledby="calendarNotificationTitle">
+        <div class="calendar-modal-header">
+          <h2 id="calendarNotificationTitle">TODAY'S EVENTS</h2>
+          <button class="modal-close-btn" id="calendarNotificationClose" type="button" aria-label="Close today's events">&times;</button>
+        </div>
+        <div class="calendar-summary" id="calendarNotificationSummary"></div>
+        <div class="calendar-notification-actions">
+          <button class="calendar-add-btn" id="calendarNotificationOpen" type="button">Open calendar</button>
+          <button class="calendar-dismiss-btn" id="calendarNotificationDismiss" type="button">Dismiss</button>
         </div>
       </section>
     </div>

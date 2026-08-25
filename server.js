@@ -204,6 +204,39 @@ app.post('/api/employers', async (request, response) => {
   return response.status(201).json(data);
 });
 
+app.patch('/api/employers', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  if (!(await requireSuperAdmin(request, response))) return;
+
+  const id = Number(request.body?.id);
+  const submittedEmployer = request.body?.employer;
+  if (!Number.isInteger(id) || !submittedEmployer || !submittedEmployer.employer_number || !submittedEmployer.employer_name || !submittedEmployer.status) {
+    return response.status(400).json({ error: 'Valid employer data is required.' });
+  }
+
+  const employerFields = [
+    'assigned_view', 'employer_number', 'employer_name', 'address', 'employee_count', 'principal', 'penalty', 'interest', 'total_amount',
+    'payment_principal', 'payment_interest', 'payment_penalty', 'payment_total', 'billing_date', 'coverage_date', 'soa_date',
+    'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date', 'demand_letter_received_date', 'handling_lawyer',
+    'docket_number', 'case_date', 'person_received', 'status',
+  ];
+  const employer = Object.fromEntries(employerFields
+    .filter((field) => Object.prototype.hasOwnProperty.call(submittedEmployer, field))
+    .map((field) => [field, submittedEmployer[field]]));
+
+  const { data, error } = await supabaseDatabase
+    .from('employers')
+    .update(employer)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to update employer.' });
+  }
+  return response.json(data);
+});
+
 app.delete('/api/employers', async (request, response) => {
   if (!supabase) {
     return response.status(503).json({ error: 'Supabase is not configured.' });
