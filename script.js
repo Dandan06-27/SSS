@@ -2,7 +2,6 @@ let pendingDelete = null;
 let pieChart;
 let barChart;
 let groupedBarChart;
-let editingEmployerId = null;
 const authScreen = document.getElementById('authScreen');
 const dashboardShell = document.getElementById('dashboardShell');
 const loginForm = document.getElementById('loginForm');
@@ -16,9 +15,8 @@ const logoutButton = document.getElementById('logoutButton');
 const pageWrapper = document.getElementById('dashboardShell');
 const officerView = document.getElementById('officerView');
 let currentUser = null;
-const AUTH_TRANSITION_MS = 1200;
 
-const isOfficerRole = (role) => ['Account Officer 1', 'Account Officer 2', 'Account Officer 3'].includes(role);
+const isOfficerRole = (role) => ['Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'].includes(role);
 
 const showAuthForm = (formName) => {
   const isRegister = formName === 'register';
@@ -31,32 +29,19 @@ const showAuthForm = (formName) => {
   });
 };
 
-const showDashboard = (account, { animate = false } = {}) => {
+const showDashboard = (account) => {
   currentUser = account;
-  const officerMode = isOfficerRole(account.role);
-  pageWrapper.classList.toggle('officer-mode', officerMode);
-  pageWrapper.dataset.officerView = officerMode ? account.role.replace('Account Officer ', 'AO') : '';
-  officerView.hidden = !officerMode;
-  loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
-
-  if (animate) {
-    authScreen.hidden = false;
-    authScreen.classList.add('is-authenticating');
-    window.setTimeout(() => {
-      authScreen.classList.remove('is-authenticating');
-      authScreen.hidden = true;
-      dashboardShell.hidden = false;
-    }, AUTH_TRANSITION_MS);
-    return;
-  }
-
   authScreen.hidden = true;
   dashboardShell.hidden = false;
+  const officerMode = isOfficerRole(account.role);
+  pageWrapper.classList.toggle('officer-mode', officerMode);
+  pageWrapper.dataset.officerView = officerMode ? account.role.replace('Assistant Officer ', 'AO') : '';
+  officerView.hidden = !officerMode;
+  loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
 };
 
 const signOut = () => {
   currentUser = null;
-  authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
   delete pageWrapper.dataset.officerView;
   officerView.hidden = true;
@@ -97,7 +82,7 @@ loginForm.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
 
     sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
-    showDashboard(result.user, { animate: true });
+    showDashboard(result.user);
     syncOfficerFormLayout();
   } catch (error) {
     loginError.textContent = error.message;
@@ -154,52 +139,83 @@ const deleteConfirmError = document.getElementById('deleteConfirmError');
 const deleteConfirmApprove = document.getElementById('deleteConfirmApprove');
 const deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
 const deleteConfirmClose = document.getElementById('deleteConfirmClose');
+const masterFileSearch = document.getElementById('masterFileSearch');
+const masterFileDate = document.getElementById('masterFileDate');
+const masterFileAo = document.getElementById('masterFileAo');
+const masterFileStatus = document.getElementById('masterFileStatus');
+const masterFileRecordCount = document.getElementById('masterFileRecordCount');
 
 const employerFields = [
   'employer_number',
   'employer_name',
   'address',
-  'employee_count',
   'principal',
-  'interest',
   'penalty',
+  'interest',
   'total_amount',
-  'payment_principal',
-  'payment_interest',
-  'payment_penalty',
-  'payment_total',
   'billing_date',
-  'soa_date',
-  'soa2_date',
-  'soa3_date',
   'coverage_date',
-  'legal_referral_date',
-  'demand_letter_date',
-  'demand_letter_received_date',
-  'handling_lawyer',
-  'docket_number',
-  'case_date',
+  'soa_date',
   'status',
 ];
-
-const amountFieldIndexes = new Set([4, 5, 6, 7, 8, 9, 10, 11]);
-const formatPeso = (value) => `₱${Number(value || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const parseAmount = (value) => Number(String(value || 0).replace(/[₱,]/g, ''));
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
   .map((row) => [...row.cells].map((cell) => cell.textContent.trim()));
 
+const normalizeStatus = (status) => status.trim().toLowerCase().replace('registed', 'registered');
+const BILLING_DUE_DAYS = 15;
+
+const getBillingDueDate = (billingDate) => {
+  if (!billingDate) return null;
+
+  const dueDate = new Date(`${billingDate}T00:00:00`);
+  if (Number.isNaN(dueDate.getTime())) return null;
+  dueDate.setDate(dueDate.getDate() + BILLING_DUE_DAYS);
+  return dueDate;
+};
+
+const isBillingDue = (billingDate, today = new Date()) => {
+  const dueDate = getBillingDueDate(billingDate);
+  if (!dueDate) return false;
+
+  const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return currentDate >= dueDate;
+};
+
+const filterMasterFile = () => {
+  const query = masterFileSearch.value.trim().toLowerCase();
+  const selectedDate = masterFileDate.value;
+  const selectedAo = masterFileAo.value;
+  const selectedStatus = normalizeStatus(masterFileStatus.value);
+  const rows = [...document.querySelectorAll('[data-ao-view="MasterFile"] tbody tr[data-employer-id]')];
+  let visibleCount = 0;
+
+  rows.forEach((row) => {
+    const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
+    const matchesDate = !selectedDate || row.cells[7]?.dataset.date === selectedDate;
+    const matchesAo = !selectedAo || row.dataset.assignedView === selectedAo;
+    const isDueDate = isBillingDue(row.cells[7]?.dataset.date);
+    const matchesStatus = !selectedStatus
+      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[10]?.textContent || '') === selectedStatus);
+    const isVisible = matchesQuery && matchesDate && matchesAo && matchesStatus;
+    row.hidden = !isVisible;
+    if (isVisible) visibleCount += 1;
+  });
+
+  masterFileRecordCount.textContent = `${visibleCount} RECORD${visibleCount === 1 ? '' : 'S'}`;
+};
+
 const getDashboardMetrics = (values) => {
   const total = values.length;
-  const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
-  const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
-  const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
-  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
+  const settled = values.filter((row) => row[10].toLowerCase() === 'settled').length;
+  const unsettled = values.filter((row) => row[10].toLowerCase() === 'unsettled').length;
+  const billed = values.reduce((sum, row) => sum + Number(row[6] || 0), 0);
+  const settledAmount = values.filter((row) => row[10].toLowerCase() === 'settled')
+    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
+  const unsettledAmount = values.filter((row) => row[10].toLowerCase() === 'unsettled')
+    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
+  const registered = values.filter((row) => ['registed', 'registered'].includes(row[10].toLowerCase())).length;
+  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[10].toLowerCase())).length;
 
   return {
     total,
@@ -218,7 +234,7 @@ const refreshMainDashboard = () => {
   const masterFileMetrics = getDashboardMetrics(getTableEmployers('MasterFile'));
   Object.entries(masterFileMetrics).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-main-metric="${name}"]`);
-    if (metric) metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
+    if (metric) metric.textContent = value;
   });
   ['settled', 'unsettled'].forEach((name) => {
     const metric = document.querySelector(`[data-status-metric="${name}"]`);
@@ -233,7 +249,7 @@ const refreshMainDashboard = () => {
     const row = document.querySelector(`[data-branch-row="${viewName}"]`);
     Object.entries(metrics).forEach(([name, value]) => {
       const metric = row?.querySelector(`[data-branch-metric="${name}"]`);
-      if (metric) metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
+      if (metric) metric.textContent = value;
     });
   });
 
@@ -244,14 +260,14 @@ const refreshMainDashboard = () => {
   branchTotals.completion = `${branchTotals.total ? ((branchTotals.settled / branchTotals.total) * 100).toFixed(2) : '0.00'}%`;
   Object.entries(branchTotals).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-branch-total="${name}"]`);
-    if (metric) metric.textContent = ['billed', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
+    if (metric) metric.textContent = ['billed', 'unsettledAmount'].includes(name) ? value.toFixed(2) : value;
   });
   const leadingBranch = branchMetrics.reduce((leading, branch) => (
     branch.metrics.total > leading.metrics.total ? branch : leading
   ));
   document.querySelector('[data-insight="leadingBranch"]').textContent = `${leadingBranch.viewName} currently has the most encoded records (${leadingBranch.metrics.total}).`;
   document.querySelector('[data-insight="completion"]').textContent = `Overall completion rate: ${masterFileMetrics.completion}`;
-  document.querySelector('[data-insight="billing"]').textContent = `Total billed: ${formatPeso(masterFileMetrics.billed)} | Unsettled: ${formatPeso(masterFileMetrics.unsettledAmount)}`;
+  document.querySelector('[data-insight="billing"]').textContent = `Total billed: P${masterFileMetrics.billed} | Unsettled: P${masterFileMetrics.unsettledAmount}`;
   document.querySelector('[data-insight="settlement"]').textContent = `Settled: ${masterFileMetrics.settled} | Unsettled: ${masterFileMetrics.unsettled}`;
   document.querySelector('[data-insight="registration"]').textContent = `Registered: ${masterFileMetrics.registered} | Not Yet Registered: ${masterFileMetrics.unregistered}`;
   refreshCharts();
@@ -260,7 +276,7 @@ const refreshMainDashboard = () => {
 const refreshCharts = () => {
   if (!pieChart || !barChart || !groupedBarChart) return;
 
-  const readMetric = (selector) => parseAmount(document.querySelector(selector)?.textContent.replace('%', ''));
+  const readMetric = (selector) => Number(document.querySelector(selector)?.textContent.replace('%', '') || 0);
   const branchNames = ['AO1', 'AO2', 'AO3'];
   const branchMetrics = branchNames.map((viewName) => ({
     total: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="total"]`),
@@ -299,60 +315,8 @@ const openEmployerModal = (viewName) => {
   employerForm.elements.employerNumber.focus();
 };
 
-const closeEditMode = () => {
-  editingEmployerId = null;
-  employerForm.querySelector('.edit-only-fields').hidden = true;
-  employerForm.reset();
-};
-
-const openEditEmployerModal = (viewName) => {
-  if (currentUser?.role !== 'Super Admin') return;
-  const view = document.querySelector(`[data-ao-view="${viewName}"]`);
-  const selectedRows = [...view.querySelectorAll('tbody tr.is-selected[data-employer-id]')];
-  if (selectedRows.length !== 1) return;
-
-  const cells = [...selectedRows[0].cells].map((cell) => cell.textContent.trim());
-  editingEmployerId = selectedRows[0].dataset.employerId;
-  employerForm.elements.assignedView.value = viewName === 'MasterFile' ? '' : viewName;
-  employerForm.elements.employerNumber.value = cells[0];
-  employerForm.elements.employerName.value = cells[1];
-  employerForm.elements.address.value = cells[2];
-  employerForm.elements.employeeCount.value = cells[3];
-  employerForm.elements.principal.value = cells[4];
-  employerForm.elements.interest.value = cells[5];
-  employerForm.elements.penalty.value = cells[6];
-  employerForm.elements.totalAmount.value = cells[7];
-  employerForm.elements.paymentPrincipal.value = cells[8];
-  employerForm.elements.paymentInterest.value = cells[9];
-  employerForm.elements.paymentPenalty.value = cells[10];
-  employerForm.elements.paymentTotal.value = cells[11];
-  employerForm.elements.billingDate.value = cells[12];
-  employerForm.elements.soaDate.value = cells[13];
-  employerForm.elements.soa2Date.value = cells[14];
-  employerForm.elements.soa3Date.value = cells[15];
-  employerForm.elements.coverageDate.value = cells[16];
-  employerForm.elements.legalReferralDate.value = cells[17];
-  employerForm.elements.demandLetterDate.value = cells[18];
-  employerForm.elements.demandLetterReceivedDate.value = cells[19];
-  employerForm.elements.handlingLawyer.value = cells[20];
-  employerForm.elements.docketNumber.value = cells[21];
-  employerForm.elements.caseDate.value = cells[22];
-  employerForm.elements.status.value = cells[23];
-  employerForm.querySelector('.edit-only-fields').hidden = false;
-  modalTitle.textContent = `Edit Employer Data - ${viewName}`;
-  employerModal.hidden = false;
-  employerForm.elements.employerNumber.focus();
-};
-
 const closeEmployerModal = () => {
   employerModal.hidden = true;
-  closeEditMode();
-};
-
-const syncEditDataButton = (view) => {
-  const editDataButton = view.querySelector('.table-edit-data-btn');
-  const selectedCount = view.querySelectorAll('tbody tr.is-selected[data-employer-id]').length;
-  editDataButton.hidden = !(view.classList.contains('is-editing') && currentUser?.role === 'Super Admin' && selectedCount === 1);
 };
 
 const syncOfficerFormLayout = () => {
@@ -360,11 +324,9 @@ const syncOfficerFormLayout = () => {
   const closeButton = employerFormShell.querySelector('.modal-close-btn');
 
   if (isOfficerRole(currentUser?.role)) {
-    const officerViewName = currentUser.role.replace('Account Officer ', 'AO');
+    const officerViewName = currentUser.role.replace('Assistant Officer ', 'AO');
     officerFormMount.appendChild(employerFormShell);
     employerFormShell.classList.add('officer-form');
-    employerForm.querySelector('.edit-only-fields').hidden = true;
-    editingEmployerId = null;
     closeButton.hidden = true;
     modalTitle.id = 'officerFormTitle';
     employerForm.elements.assignedView.value = officerViewName;
@@ -384,8 +346,7 @@ const openTableDashboard = (viewName) => {
   const metrics = getDashboardMetrics(getTableEmployers(viewName));
   tableDashboardTitle.textContent = `${viewName.toUpperCase()} DASHBOARD`;
   Object.entries(metrics).forEach(([name, value]) => {
-    const metric = tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`);
-    metric.textContent = ['billed', 'settledAmount', 'unsettledAmount'].includes(name) ? formatPeso(value) : value;
+    tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`).textContent = value;
   });
   tableDashboardModal.hidden = false;
   tableDashboardClose.focus();
@@ -466,7 +427,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
 });
 
-const addEmployerToTable = (viewName, rowValues, employerId) => {
+const addEmployerToTable = (viewName, rowValues, employerId, assignedView = viewName) => {
   const targetBody = document.querySelector(`[data-ao-view="${viewName}"] .ao-table tbody`);
   if (!targetBody) return false;
 
@@ -477,12 +438,19 @@ const addEmployerToTable = (viewName, rowValues, employerId) => {
     targetBody.appendChild(targetRow);
   }
 
-  targetRow.replaceChildren(...rowValues.map((value, index) => {
+  targetRow.replaceChildren(...rowValues.map((value) => {
     const cell = document.createElement('td');
-    cell.textContent = amountFieldIndexes.has(index) ? formatPeso(value) : value || '';
+    cell.textContent = value || '';
     return cell;
   }));
   targetRow.dataset.employerId = String(employerId);
+  targetRow.dataset.assignedView = assignedView;
+  if (viewName === 'MasterFile') {
+    const billingDateCell = targetRow.cells[7];
+    if (billingDateCell) billingDateCell.dataset.date = rowValues[7] || '';
+    targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[7]));
+    filterMasterFile();
+  }
 
   return true;
 };
@@ -496,7 +464,6 @@ const setTableEditMode = (viewName, isEditing) => {
   view.classList.toggle('is-editing', isEditing);
   view.querySelector('.table-edit-btn').textContent = isEditing ? 'Cancel edit' : 'Edit mode';
   view.querySelector('.table-delete-btn').hidden = !isEditing;
-  syncEditDataButton(view);
   view.querySelectorAll('tbody tr').forEach((row) => row.classList.remove('is-selected'));
 };
 
@@ -558,7 +525,7 @@ const loadEmployers = async () => {
   const employers = await response.json();
   employers.forEach((employer) => {
     addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id);
-    addEmployerToTable('MasterFile', employerToRow(employer), employer.id);
+    addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view);
   });
 };
 
@@ -580,55 +547,27 @@ employerForm.addEventListener('submit', async (event) => {
     status: formData.get('status'),
   };
 
-  if (editingEmployerId) {
-    delete employer.assigned_view;
-    Object.assign(employer, {
-      employee_count: Number(formData.get('employeeCount') || 0),
-      payment_principal: Number(formData.get('paymentPrincipal') || 0),
-      payment_interest: Number(formData.get('paymentInterest') || 0),
-      payment_penalty: Number(formData.get('paymentPenalty') || 0),
-      payment_total: Number(formData.get('paymentTotal') || 0),
-      soa2_date: formData.get('soa2Date') || null,
-      soa3_date: formData.get('soa3Date') || null,
-      legal_referral_date: formData.get('legalReferralDate') || null,
-      demand_letter_date: formData.get('demandLetterDate') || null,
-      demand_letter_received_date: formData.get('demandLetterReceivedDate') || null,
-      handling_lawyer: formData.get('handlingLawyer') || null,
-      docket_number: formData.get('docketNumber') || null,
-      case_date: formData.get('caseDate') || null,
-    });
-  }
-
-  let response;
-  try {
-    response = await fetch('/api/employers', {
-      method: editingEmployerId ? 'PATCH' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(editingEmployerId && currentUser?.accessToken ? { Authorization: `Bearer ${currentUser.accessToken}` } : {}),
-      },
-      body: JSON.stringify(editingEmployerId ? { id: editingEmployerId, employer } : employer),
-    });
-  } catch (_error) {
-    alert('Unable to connect to the server while saving employer data.');
-    return;
-  }
+  const response = await fetch('/api/employers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(employer),
+  });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    alert(error?.error || `Unable to save employer (HTTP ${response.status}).`);
+    alert('Unable to save employer. Check the server connection.');
     return;
   }
 
   const savedEmployer = await response.json();
   addEmployerToTable(savedEmployer.assigned_view, employerToRow(savedEmployer), savedEmployer.id);
-  addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id);
+  addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view);
   refreshMainDashboard();
   closeEmployerModal();
+  employerForm.reset();
 });
 
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
-  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(24), '</tr>').repeat(21);
+  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(11), '</tr>').repeat(21);
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {
@@ -642,8 +581,9 @@ document.querySelectorAll('[data-table-delete]').forEach((button) => {
   button.addEventListener('click', () => openDeleteConfirmation(button.dataset.tableDelete));
 });
 
-document.querySelectorAll('[data-table-edit-data]').forEach((button) => {
-  button.addEventListener('click', () => openEditEmployerModal(button.dataset.tableEditData));
+[masterFileSearch, masterFileDate, masterFileAo, masterFileStatus].forEach((control) => {
+  control.addEventListener('input', filterMasterFile);
+  control.addEventListener('change', filterMasterFile);
 });
 
 deleteConfirmApprove.addEventListener('click', deleteSelectedRows);
@@ -654,7 +594,6 @@ document.addEventListener('click', (event) => {
   const row = event.target.closest('.ao-table tbody tr');
   if (!row || !row.closest('.ao-view.is-editing') || !row.dataset.employerId) return;
   row.classList.toggle('is-selected');
-  syncEditDataButton(row.closest('.ao-view'));
 });
 
 loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
@@ -664,7 +603,6 @@ document.addEventListener('click', (event) => {
     document.querySelectorAll('.ao-table tbody tr.is-selected').forEach((selectedRow) => {
       selectedRow.classList.remove('is-selected');
     });
-    document.querySelectorAll('.ao-view.is-editing').forEach((view) => syncEditDataButton(view));
   }
 });
 

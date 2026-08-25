@@ -18,6 +18,8 @@ const supabaseDatabase = supabaseUrl && process.env.SUPABASE_SERVICE_ROLE_KEY
 const APP_SESSION_SECRET = process.env.APP_SESSION_SECRET || 'sss-local-dev-secret-change-me';
 
 const RBAC_ALLOWED_ROLES = ['Super Admin', 'Admin', 'Account Officer 1', 'Account Officer 2', 'Account Officer 3'];
+const isMissingPersonReceivedColumn = (error) => error?.code === '42703'
+  && String(error.message || '').includes('person_received');
 
 const hashPassword = (password) => crypto.createHash('sha256').update(String(password)).digest('hex');
 
@@ -167,6 +169,73 @@ const requireSuperAdmin = async (request, response) => {
   return payload;
 };
 
+const requireAuthenticatedUser = async (request, response) => {
+  const authorization = request.headers.authorization || '';
+  const accessToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  const payload = verifyAppToken(accessToken);
+  if (payload && RBAC_ALLOWED_ROLES.includes(normalizeRole(payload.role))) return payload;
+
+  if (supabase) {
+    const { data, error } = await supabase.auth.getUser(accessToken);
+    const role = normalizeRole(data.user?.app_metadata?.role);
+    if (!error && data.user && RBAC_ALLOWED_ROLES.includes(role)) {
+      return { userId: data.user.id, role, email: data.user.email };
+    }
+  }
+
+  response.status(401).json({ error: 'Authentication is required.' });
+  return null;
+};
+
+app.get('/api/calendar-events', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  if (!(await requireAuthenticatedUser(request, response))) return;
+
+  const { data, error } = await supabaseDatabase
+    .from('calendar_events')
+    .select('id, title, event_date, start_time, end_time, description, created_by, created_at')
+    .order('event_date', { ascending: true })
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to load calendar events.' });
+  }
+  return response.json(data);
+});
+
+app.post('/api/calendar-events', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
+
+  const submittedEvent = request.body || {};
+  const event = {
+    title: String(submittedEvent.title || '').trim(),
+    event_date: submittedEvent.date,
+    start_time: submittedEvent.startTime,
+    end_time: submittedEvent.endTime,
+    description: String(submittedEvent.description || '').trim() || null,
+    created_by: user.userId,
+  };
+  if (!event.title || !event.event_date || !event.start_time || !event.end_time || event.end_time <= event.start_time) {
+    return response.status(400).json({ error: 'Valid event title, date, and time range are required.' });
+  }
+
+  const { data, error } = await supabaseDatabase
+    .from('calendar_events')
+    .insert(event)
+    .select('id, title, event_date, start_time, end_time, description, created_by, created_at')
+    .single();
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to save calendar event. Run the calendar_events schema migration.' });
+  }
+  return response.status(201).json(data);
+});
+
 app.get('/api/employers', async (request, response) => {
   if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
@@ -201,6 +270,9 @@ app.post('/api/employers', async (request, response) => {
 
   if (error) {
     console.error(error);
+    if (isMissingPersonReceivedColumn(error)) {
+      return response.status(500).json({ error: 'Database setup is incomplete. Run: alter table public.employers add column if not exists person_received text;' });
+    }
     return response.status(500).json({ error: 'Unable to save employer.' });
   }
 
@@ -221,7 +293,7 @@ app.patch('/api/employers', async (request, response) => {
     'employer_number', 'employer_name', 'address', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
-    'demand_letter_received_date', 'handling_lawyer', 'docket_number', 'case_date', 'status',
+    'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',
   ];
   const employer = Object.fromEntries(employerFields
     .filter((field) => Object.prototype.hasOwnProperty.call(submittedEmployer, field))
@@ -236,6 +308,9 @@ app.patch('/api/employers', async (request, response) => {
 
   if (error) {
     console.error(error);
+    if (isMissingPersonReceivedColumn(error)) {
+      return response.status(500).json({ error: 'Database setup is incomplete. Run: alter table public.employers add column if not exists person_received text;' });
+    }
     return response.status(500).json({ error: 'Unable to update employer.' });
   }
 

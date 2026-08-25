@@ -198,8 +198,8 @@
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">₱0.00</td>
-                <td data-branch-metric="unsettledAmount">₱0.00</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
                 <td data-branch-metric="completion">0%</td>
               </tr>
               <tr data-branch-row="AO2">
@@ -207,8 +207,8 @@
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">₱0.00</td>
-                <td data-branch-metric="unsettledAmount">₱0.00</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
                 <td data-branch-metric="completion">0%</td>
               </tr>
               <tr data-branch-row="AO3">
@@ -216,8 +216,8 @@
                 <td data-branch-metric="total">0</td>
                 <td data-branch-metric="settled">0</td>
                 <td data-branch-metric="unsettled">0</td>
-                <td data-branch-metric="billed">₱0.00</td>
-                <td data-branch-metric="unsettledAmount">₱0.00</td>
+                <td data-branch-metric="billed">0</td>
+                <td data-branch-metric="unsettledAmount">0</td>
                 <td data-branch-metric="completion">0%</td>
               </tr>
               <tr class="total-row">
@@ -225,8 +225,8 @@
                 <td data-branch-total="total">0</td>
                 <td data-branch-total="settled">0</td>
                 <td data-branch-total="unsettled">0</td>
-                <td data-branch-total="billed">₱0.00</td>
-                <td data-branch-total="unsettledAmount">₱0.00</td>
+                <td data-branch-total="billed">0</td>
+                <td data-branch-total="unsettledAmount">0</td>
                 <td data-branch-total="completion">0%</td>
               </tr>
             </tbody>
@@ -318,16 +318,20 @@
       <section class="ao-view" data-ao-view="AO1">
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col span="24"></colgroup>
-            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO1" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
+            <caption><span>AO1</span><button class="table-edit-btn" type="button" data-table-edit="AO1">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO1" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th>
-                <th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th>
-                <th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th>
-              </tr>
-              <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -338,16 +342,20 @@
       <section class="ao-view" data-ao-view="AO2">
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col span="24"></colgroup>
-            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO2" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
+            <caption><span>AO2</span><button class="table-edit-btn" type="button" data-table-edit="AO2">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO2" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th>
-                <th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th>
-                <th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th>
-              </tr>
-              <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -358,16 +366,20 @@
       <section class="ao-view" data-ao-view="AO3">
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col span="24"></colgroup>
-            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="AO3" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
+            <caption><span>AO3</span><button class="table-edit-btn" type="button" data-table-edit="AO3">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="AO3" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th>
-                <th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th>
-                <th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th>
-              </tr>
-              <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -376,18 +388,52 @@
       </section>
 
       <section class="ao-view" data-ao-view="MasterFile">
+        <div class="masterfile-filters" aria-label="MasterFile filters">
+          <label class="masterfile-search">
+            <input id="masterFileSearch" type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
+          </label>
+          <label class="masterfile-date">
+            <span class="visually-hidden">Filter by date</span>
+            <input id="masterFileDate" type="date" aria-label="Filter MasterFile by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by AO</span>
+            <select id="masterFileAo" aria-label="Filter MasterFile by AO">
+              <option value="">ALL AO</option>
+              <option value="AO1">AO1</option>
+              <option value="AO2">AO2</option>
+              <option value="AO3">AO3</option>
+            </select>
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select id="masterFileStatus" aria-label="Filter MasterFile by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+          <span class="masterfile-record-count" id="masterFileRecordCount" aria-live="polite">0 RECORDS</span>
+        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
-            <colgroup><col span="24"></colgroup>
-            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-edit-data-btn" type="button" data-table-edit-data="MasterFile" hidden>Edit data</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
+            <caption><span>MasterFile</span><button class="table-edit-btn" type="button" data-table-edit="MasterFile">Edit mode</button><button class="table-delete-btn" type="button" data-table-delete="MasterFile" hidden>Delete selected</button></caption>
             <thead>
               <tr>
-                <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th>
-                <th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th>
-                <th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th>
-              </tr>
-              <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Employer Number</th>
+                <th>Employer Name</th>
+                <th>Address</th>
+                <th>Principal</th>
+                <th>Penalty</th>
+                <th>Interest</th>
+                <th>Total Amount</th>
+                <th>Date of Billing (Served)</th>
+                <th>Date of Coverage</th>
+                <th>SOA Date Served</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -423,22 +469,6 @@
               <option value="Not Yet Registered">Not Yet Registered</option>
             </select>
           </label>
-          <fieldset class="edit-only-fields" hidden>
-            <legend>Edit table data</legend>
-            <label>No. of EEs:<input name="employeeCount" type="number" min="0"></label>
-            <label>Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
-            <label>Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
-            <label>Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
-            <label>Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0"></label>
-            <label>Date 2nd SOA Served:<input name="soa2Date" type="date"></label>
-            <label>Date 3rd SOA Served:<input name="soa3Date" type="date"></label>
-            <label>Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
-            <label>Demand Letter Date:<input name="demandLetterDate" type="date"></label>
-            <label>Demand Letter Delivered/Received:<input name="demandLetterReceivedDate" type="date"></label>
-            <label>Handling Lawyer:<input name="handlingLawyer" type="text"></label>
-            <label>Docket #:<input name="docketNumber" type="text"></label>
-            <label>Case Date:<input name="caseDate" type="date"></label>
-          </fieldset>
           <button class="employer-submit-btn" type="submit">SUBMIT</button>
         </form>
       </section>
