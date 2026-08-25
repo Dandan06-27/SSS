@@ -834,12 +834,16 @@ employerForm.addEventListener('submit', async (event) => {
 
   const response = await fetch('/api/employers', {
     method: editingEmployerId ? 'PATCH' : 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${currentUser?.accessToken || ''}`,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(editingEmployerId ? { id: editingEmployerId, employer } : employer),
   });
 
   if (!response.ok) {
-    alert('Unable to save employer. Check the server connection.');
+    const error = await response.json().catch(() => null);
+    alert(error?.error || `Unable to save employer (HTTP ${response.status}).`);
     return;
   }
 
