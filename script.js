@@ -149,14 +149,28 @@ const employerFields = [
   'employer_number',
   'employer_name',
   'address',
+  'employee_count',
   'principal',
-  'penalty',
   'interest',
+  'penalty',
   'total_amount',
+  'payment_principal',
+  'payment_interest',
+  'payment_penalty',
+  'payment_total',
   'billing_date',
-  'coverage_date',
   'soa_date',
+  'soa2_date',
+  'soa3_date',
+  'coverage_date',
+  'legal_referral_date',
+  'demand_letter_date',
+  'demand_letter_received_date',
+  'handling_lawyer',
+  'docket_number',
+  'case_date',
   'status',
+  'person_received',
 ];
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
@@ -192,11 +206,11 @@ const filterMasterFile = () => {
 
   rows.forEach((row) => {
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
-    const matchesDate = !selectedDate || row.cells[7]?.dataset.date === selectedDate;
+    const matchesDate = !selectedDate || row.cells[12]?.dataset.date === selectedDate;
     const matchesAo = !selectedAo || row.dataset.assignedView === selectedAo;
-    const isDueDate = isBillingDue(row.cells[7]?.dataset.date);
+    const isDueDate = isBillingDue(row.cells[12]?.dataset.date);
     const matchesStatus = !selectedStatus
-      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[10]?.textContent || '') === selectedStatus);
+      || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[23]?.textContent || '') === selectedStatus);
     const isVisible = matchesQuery && matchesDate && matchesAo && matchesStatus;
     row.hidden = !isVisible;
     if (isVisible) visibleCount += 1;
@@ -207,15 +221,15 @@ const filterMasterFile = () => {
 
 const getDashboardMetrics = (values) => {
   const total = values.length;
-  const settled = values.filter((row) => row[10].toLowerCase() === 'settled').length;
-  const unsettled = values.filter((row) => row[10].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const settledAmount = values.filter((row) => row[10].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const unsettledAmount = values.filter((row) => row[10].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + Number(row[6] || 0), 0);
-  const registered = values.filter((row) => ['registed', 'registered'].includes(row[10].toLowerCase())).length;
-  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[10].toLowerCase())).length;
+  const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
+  const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
+  const billed = values.reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
+    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
+    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
+  const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
 
   return {
     total,
@@ -446,9 +460,9 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
   if (viewName === 'MasterFile') {
-    const billingDateCell = targetRow.cells[7];
-    if (billingDateCell) billingDateCell.dataset.date = rowValues[7] || '';
-    targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[7]));
+    const billingDateCell = targetRow.cells[12];
+    if (billingDateCell) billingDateCell.dataset.date = rowValues[12] || '';
+    targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[12]));
     filterMasterFile();
   }
 
@@ -545,6 +559,7 @@ employerForm.addEventListener('submit', async (event) => {
     coverage_date: formData.get('coverageDate') || null,
     soa_date: formData.get('soaDate') || null,
     status: formData.get('status'),
+    person_received: formData.get('personReceived') || '',
   };
 
   const response = await fetch('/api/employers', {
@@ -567,7 +582,7 @@ employerForm.addEventListener('submit', async (event) => {
 });
 
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
-  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(11), '</tr>').repeat(21);
+  body.innerHTML = '<tr>'.concat('<td></td>'.repeat(25), '</tr>').repeat(21);
 });
 
 document.querySelectorAll('[data-table-edit]').forEach((button) => {
