@@ -375,7 +375,7 @@ body {
 .ao-table caption {
   position: relative;
   caption-side: top;
-  background: #737373;
+  background: linear-gradient(180deg, #8a9bb0 0%, #6b7f96 50%, #5a6d82 100%);
   color: #fff;
   font-size: 16px;
   font-weight: bold;
