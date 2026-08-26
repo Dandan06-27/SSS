@@ -42,6 +42,7 @@ const showDashboard = (account, { animate = false } = {}) => {
   const officerMode = Boolean(officerViewName);
   const superAdmin = account.role === 'Super Admin';
   pageWrapper.classList.remove('officer-mode');
+  pageWrapper.classList.add('dashboard-active');
   pageWrapper.dataset.officerView = officerViewName;
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
@@ -223,6 +224,13 @@ const masterFileStatus = document.getElementById('masterFileStatus');
 let calendarEvents = [];
 let branchSummary = null;
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let calendarReturnView = 'DASHBOARD';
+let orgChartReturnView = 'DASHBOARD';
+const orgChartGroups = {
+  root: document.querySelector('[data-org-chart-group="root"]'),
+  admin: document.querySelector('[data-org-chart-group="admin"]'),
+  users: document.querySelector('[data-org-chart-group="users"]'),
+};
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
 const formatEventTime = (time) => time ? time.slice(0, 5) : '';
@@ -268,6 +276,7 @@ const renderCalendar = () => {
     } else {
       const day = index - firstDay + 1;
       const date = formatCalendarDate(new Date(year, month, day));
+      if (date === formatCalendarDate(new Date())) dayCell.classList.add('is-today');
       dayCell.innerHTML = `<span class="calendar-day-number">${day}</span>`;
       calendarEvents.filter((event) => event.event_date === date).forEach((event) => {
         const eventButton = document.createElement('button');
@@ -295,15 +304,31 @@ const loadCalendarEvents = async () => {
   showCurrentDateNotification();
 };
 
-const closeCalendar = () => { calendarModal.hidden = true; };
+const showCalendarPage = () => {
+  calendarReturnView = mainNav.dataset.activeView || 'DASHBOARD';
+  pageWrapper.classList.remove('dashboard-active');
+  orgChartModal.hidden = true;
+  dashboardView.hidden = true;
+  employerFormView.hidden = true;
+  aoViews.forEach((view) => { view.hidden = true; });
+  document.querySelector('.ao-views').classList.remove('is-active');
+  calendarModal.hidden = false;
+  calendarOpenButton.classList.add('active');
+  renderCalendar();
+  calendarClose.focus();
+};
+
+const closeCalendar = () => {
+  calendarModal.hidden = true;
+  calendarOpenButton.classList.remove('active');
+  navigateToView(calendarReturnView);
+};
 const closeCalendarEvent = () => { calendarEventModal.hidden = true; };
 const closeCalendarSummary = () => { calendarSummaryModal.hidden = true; };
 const closeCalendarNotification = () => { calendarNotificationModal.hidden = true; };
 
 calendarOpenButton.addEventListener('click', () => {
-  renderCalendar();
-  calendarModal.hidden = false;
-  calendarClose.focus();
+  showCalendarPage();
 });
 calendarClose.addEventListener('click', closeCalendar);
 calendarPrevious.addEventListener('click', () => {
@@ -327,9 +352,7 @@ calendarNotificationClose.addEventListener('click', closeCalendarNotification);
 calendarNotificationDismiss.addEventListener('click', closeCalendarNotification);
 calendarNotificationOpen.addEventListener('click', () => {
   closeCalendarNotification();
-  renderCalendar();
-  calendarModal.hidden = false;
-  calendarClose.focus();
+  showCalendarPage();
 });
 
 calendarEventForm.addEventListener('submit', async (event) => {
@@ -372,9 +395,6 @@ calendarEventForm.addEventListener('submit', async (event) => {
   }
 });
 
-calendarModal.addEventListener('click', (event) => {
-  if (event.target === calendarModal) closeCalendar();
-});
 calendarEventModal.addEventListener('click', (event) => {
   if (event.target === calendarEventModal) closeCalendarEvent();
 });
@@ -483,6 +503,10 @@ const getDashboardMetrics = (values) => {
 const navigateToView = (viewName) => {
   const isDashboard = viewName === 'DASHBOARD';
   const isEmployerForm = viewName === 'EmployerForm';
+  calendarModal.hidden = true;
+  orgChartModal.hidden = true;
+  calendarOpenButton.classList.remove('active');
+  pageWrapper.classList.toggle('dashboard-active', isDashboard);
   navButtons.forEach((button) => {
     const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
     button.classList.toggle('active', buttonView === viewName);
@@ -654,13 +678,92 @@ const closeTableDashboard = () => {
   tableDashboardModal.hidden = true;
 };
 
+const normalizeOrgChartRole = (role) => String(role || '')
+  .replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1')
+  .replace(/^Account Assistant ([1-3])$/, 'Account Officer $1');
+
+const createOrgChartNode = (user, isRoot = false) => {
+  const node = document.createElement('article');
+  node.className = `org-node${isRoot ? ' org-node-root' : ''}`;
+
+  const role = normalizeOrgChartRole(user.role);
+  if (isRoot || role === 'Admin') {
+    const roleLabel = document.createElement('span');
+    roleLabel.className = 'org-role';
+    roleLabel.textContent = isRoot ? 'ROOT' : 'ADMIN';
+    node.appendChild(roleLabel);
+  }
+
+  const name = document.createElement('h3');
+  name.textContent = user.full_name || user.username || user.email;
+  node.appendChild(name);
+
+  const username = document.createElement('p');
+  username.className = 'org-username';
+  username.textContent = user.username || user.email;
+  node.appendChild(username);
+
+  const email = document.createElement('p');
+  email.textContent = user.email;
+  node.appendChild(email);
+
+  const userRole = document.createElement('p');
+  userRole.textContent = role;
+  node.appendChild(userRole);
+  return node;
+};
+
+const renderOrgChartUsers = (users) => {
+  Object.values(orgChartGroups).forEach((group) => group.replaceChildren());
+  users.filter((user) => user.is_active !== false).forEach((user) => {
+    const role = normalizeOrgChartRole(user.role);
+    const groupName = role === 'Super Admin' ? 'root' : role === 'Admin' ? 'admin' : 'users';
+    orgChartGroups[groupName].appendChild(createOrgChartNode(user, groupName === 'root'));
+  });
+};
+
+const loadOrgChartUsers = async () => {
+  Object.values(orgChartGroups).forEach((group) => {
+    group.replaceChildren();
+    const status = document.createElement('p');
+    status.className = 'org-chart-status';
+    status.textContent = 'Loading users...';
+    group.appendChild(status);
+  });
+
+  try {
+    const response = await fetch('/api/users', { headers: { Authorization: `Bearer ${currentUser.accessToken}` } });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Unable to load users.');
+    renderOrgChartUsers(result);
+  } catch (error) {
+    Object.values(orgChartGroups).forEach((group) => {
+      group.replaceChildren();
+      const status = document.createElement('p');
+      status.className = 'org-chart-status';
+      status.textContent = error.message;
+      group.appendChild(status);
+    });
+  }
+};
+
 const openOrgChart = () => {
+  orgChartReturnView = mainNav.dataset.activeView || 'DASHBOARD';
+  pageWrapper.classList.remove('dashboard-active');
+  calendarModal.hidden = true;
+  dashboardView.hidden = true;
+  employerFormView.hidden = true;
+  aoViews.forEach((view) => { view.hidden = true; });
+  document.querySelector('.ao-views').classList.remove('is-active');
   orgChartModal.hidden = false;
+  loadOrgChartUsers();
+  document.querySelector('.dashboard-nav-item .nav-btn').classList.remove('active');
   orgChartClose.focus();
 };
 
 const closeOrgChart = () => {
   orgChartModal.hidden = true;
+  navigateToView(orgChartReturnView);
 };
 
 navButtons.forEach((button) => {
@@ -683,13 +786,6 @@ document.querySelectorAll('.add-record-btn').forEach((button) => {
   });
 });
 
-document.querySelectorAll('.dashboard-btn').forEach((button) => {
-  button.addEventListener('click', (event) => {
-    event.stopPropagation();
-    openTableDashboard(button.dataset.dashboardView);
-  });
-});
-
 document.querySelector('.org-chart-btn').addEventListener('click', (event) => {
   event.stopPropagation();
   openOrgChart();
@@ -706,14 +802,9 @@ tableDashboardModal.addEventListener('click', (event) => {
   if (event.target === tableDashboardModal) closeTableDashboard();
 });
 
-orgChartModal.addEventListener('click', (event) => {
-  if (event.target === orgChartModal) closeOrgChart();
-});
-
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !employerFormView.hidden) closeEmployerModal();
   if (event.key === 'Escape' && !tableDashboardModal.hidden) closeTableDashboard();
-  if (event.key === 'Escape' && !orgChartModal.hidden) closeOrgChart();
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
   if (event.key === 'Escape' && !logoutConfirmModal.hidden) closeLogoutConfirmation();
   if (event.key === 'Escape' && !calendarNotificationModal.hidden) closeCalendarNotification();

@@ -158,6 +158,24 @@ app.post('/api/auth/login', async (request, response) => {
   });
 });
 
+app.get('/api/users', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+  if (!(await requireSuperAdmin(request, response))) return;
+
+  const { data, error } = await supabaseDatabase
+    .from('users')
+    .select('id, username, email, full_name, role, is_active')
+    .order('role', { ascending: true })
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to load user accounts.' });
+  }
+
+  return response.json(data || []);
+});
+
 const requireSuperAdmin = async (request, response) => {
   const authorization = request.headers.authorization || '';
   const accessToken = authorization.startsWith('Bearer ')
