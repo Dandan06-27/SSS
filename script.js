@@ -11,6 +11,9 @@ const registerError = document.getElementById('registerError');
 const returnToLogin = document.getElementById('returnToLogin');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
+const logoutConfirmModal = document.getElementById('logoutConfirmModal');
+const logoutConfirmApprove = document.getElementById('logoutConfirmApprove');
+const logoutConfirmCancel = document.getElementById('logoutConfirmCancel');
 const pageWrapper = document.getElementById('dashboardShell');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
@@ -43,6 +46,7 @@ const showDashboard = (account, { animate = false } = {}) => {
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
     navItem.hidden = (superAdmin && navView.startsWith('AO'))
+      || (superAdmin && navView === 'EmployerForm')
       || (officerMode && navView !== officerViewName && navView !== 'EmployerForm');
   });
   document.getElementById('employerFormView').hidden = true;
@@ -71,6 +75,7 @@ const showDashboard = (account, { animate = false } = {}) => {
 
 const signOut = () => {
   currentUser = null;
+  logoutConfirmModal.hidden = true;
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
   delete pageWrapper.dataset.officerView;
@@ -150,7 +155,18 @@ registerForm.addEventListener('submit', (event) => {
   loginError.hidden = false;
 });
 
-logoutButton.addEventListener('click', signOut);
+const openLogoutConfirmation = () => {
+  logoutConfirmModal.hidden = false;
+  logoutConfirmCancel.focus();
+};
+
+const closeLogoutConfirmation = () => {
+  logoutConfirmModal.hidden = true;
+};
+
+logoutButton.addEventListener('click', openLogoutConfirmation);
+logoutConfirmApprove.addEventListener('click', signOut);
+logoutConfirmCancel.addEventListener('click', closeLogoutConfirmation);
 
 /* Static dashboard data — mirrors screenshot values exactly */
 
@@ -690,6 +706,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !tableDashboardModal.hidden) closeTableDashboard();
   if (event.key === 'Escape' && !orgChartModal.hidden) closeOrgChart();
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
+  if (event.key === 'Escape' && !logoutConfirmModal.hidden) closeLogoutConfirmation();
   if (event.key === 'Escape' && !calendarNotificationModal.hidden) closeCalendarNotification();
 });
 

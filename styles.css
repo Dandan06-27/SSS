@@ -683,6 +683,62 @@ body {
   display: none;
 }
 
+.logout-confirm-backdrop {
+  background: rgba(8, 20, 32, 0.62);
+}
+
+.logout-confirm-modal {
+  width: min(277px, 100%);
+  padding: 12px 14px 14px;
+  background: #f4f7fb;
+  border: 1px solid #152c42;
+  border-radius: 4px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.35);
+}
+
+.logout-confirm-modal h2 {
+  color: #173f78;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.logout-confirm-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 29px;
+}
+
+.logout-confirm-actions button {
+  min-width: 47px;
+  min-height: 21px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.logout-approve-btn {
+  border: 0;
+  background: #2458a0;
+  color: #fff;
+}
+
+.logout-approve-btn:hover {
+  background: #173f78;
+}
+
+.logout-cancel-btn {
+  border: 1px solid #b8c7d8;
+  background: #fff;
+  color: #29456b;
+}
+
+.logout-cancel-btn:hover {
+  background: #edf3fa;
+}
+
 .calendar-open-btn,
 .calendar-add-btn {
   border: 0;
