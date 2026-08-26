@@ -8,7 +8,6 @@ const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const loginError = document.getElementById('loginError');
 const registerError = document.getElementById('registerError');
-const authTabs = document.querySelectorAll('[data-auth-tab]');
 const returnToLogin = document.getElementById('returnToLogin');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
@@ -32,11 +31,6 @@ const showAuthForm = (formName) => {
   const isRegister = formName === 'register';
   loginForm.hidden = isRegister;
   registerForm.hidden = !isRegister;
-  authTabs.forEach((tab) => {
-    const isActive = tab.dataset.authTab === formName;
-    tab.classList.toggle('is-active', isActive);
-    tab.setAttribute('aria-selected', String(isActive));
-  });
 };
 
 const showDashboard = (account, { animate = false } = {}) => {
@@ -135,9 +129,6 @@ loginForm.addEventListener('submit', async (event) => {
   }
 });
 
-authTabs.forEach((tab) => {
-  tab.addEventListener('click', () => showAuthForm(tab.dataset.authTab));
-});
 returnToLogin.addEventListener('click', () => showAuthForm('login'));
 
 registerForm.addEventListener('submit', (event) => {

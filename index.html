@@ -24,10 +24,6 @@
         <form class="login-card" id="loginForm">
           <h2>Sign in</h2>
           <p class="login-intro">Enter your username and password to access your account.</p>
-          <div class="auth-tabs" role="tablist" aria-label="Authentication options">
-            <button class="auth-tab is-active" data-auth-tab="login" id="signInTab" type="button" role="tab" aria-selected="true">Sign in</button>
-            <button class="auth-tab" data-auth-tab="register" id="registerTab" type="button" role="tab" aria-selected="false">Register</button>
-          </div>
           <label class="auth-field">
             <span>Username</span>
             <input id="username" name="username" type="text" autocomplete="username" required>
@@ -43,10 +39,6 @@
         <form class="login-card register-card" id="registerForm" hidden>
           <h2>Create account</h2>
           <p class="login-intro">Enter the information below to register a new account.</p>
-          <div class="auth-tabs" role="tablist" aria-label="Authentication options">
-            <button class="auth-tab" data-auth-tab="login" type="button" role="tab" aria-selected="false">Sign in</button>
-            <button class="auth-tab is-active" data-auth-tab="register" type="button" role="tab" aria-selected="true">Register</button>
-          </div>
           <label class="auth-field">
             <span>Full name</span>
             <input name="fullName" type="text" autocomplete="name" required>
