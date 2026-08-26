@@ -57,6 +57,9 @@ const showDashboard = (account, { animate = false } = {}) => {
   document.querySelector('.ao-views').classList.remove('is-active');
   document.getElementById('mainNav').dataset.activeView = 'DASHBOARD';
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
+  const openOfficerDataForm = () => {
+    if (officerMode) openEmployerModal(officerViewName);
+  };
 
   if (animate) {
     authScreen.hidden = false;
@@ -65,12 +68,14 @@ const showDashboard = (account, { animate = false } = {}) => {
       authScreen.classList.remove('is-authenticating');
       authScreen.hidden = true;
       dashboardShell.hidden = false;
+      openOfficerDataForm();
     }, AUTH_TRANSITION_MS);
     return;
   }
 
   authScreen.hidden = true;
   dashboardShell.hidden = false;
+  if (officerMode) window.setTimeout(openOfficerDataForm, 0);
 };
 
 const signOut = () => {
