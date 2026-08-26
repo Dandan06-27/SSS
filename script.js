@@ -108,6 +108,8 @@ loginForm.addEventListener('submit', async (event) => {
   const password = loginForm.elements.password.value;
   const submitButton = loginForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
+  submitButton.classList.add('is-loading');
+  submitButton.setAttribute('aria-label', 'Signing in');
   loginError.hidden = true;
 
   try {
@@ -131,6 +133,8 @@ loginForm.addEventListener('submit', async (event) => {
     loginForm.elements.password.focus();
   } finally {
     submitButton.disabled = false;
+    submitButton.classList.remove('is-loading');
+    submitButton.removeAttribute('aria-label');
   }
 });
 

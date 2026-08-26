@@ -195,6 +195,35 @@ body {
   font-weight: bold;
 }
 
+.login-submit.is-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 35px;
+  cursor: wait;
+}
+
+.login-submit.is-loading::after {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spinner 700ms linear infinite;
+  content: '';
+}
+
+@keyframes login-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-submit.is-loading {
+  color: transparent;
+  font-size: 0;
+}
+
 .login-submit:hover {
   background: #173f78;
 }
