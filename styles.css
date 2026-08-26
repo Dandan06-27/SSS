@@ -1190,30 +1190,42 @@ body {
   color: #0b2d51;
 }
 
+.org-chart-lines {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.org-chart-line {
+  fill: none;
+  stroke: #8ba9d4;
+  stroke-width: 2;
+}
+
 .org-chart-level {
   display: flex;
   justify-content: center;
   gap: 12px;
 }
 
+.org-chart-branches {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 42px;
+}
+
 .org-chart-root-level,
 .org-chart-admin-level {
   position: relative;
   z-index: 1;
-}
-
-.org-chart-connector {
-  width: 2px;
-  height: 28px;
-  margin: 0 auto;
-  background: #8ba9d4;
-}
-
-.org-chart-section-label {
-  margin: 238px 0 10px;
-  font-size: 12px;
-  font-weight: bold;
-  letter-spacing: 1px;
 }
 
 .org-node {
@@ -1293,13 +1305,14 @@ body {
     padding: 18px 12px 24px;
   }
 
-  .org-chart-section-label {
-    margin-top: 30px;
-  }
-
   .org-chart-user-level {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .org-chart-branches {
+    display: grid;
+    gap: 22px;
   }
 
   .org-chart-user-level .org-node:last-child {

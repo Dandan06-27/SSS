@@ -231,6 +231,7 @@ const orgChartGroups = {
   admin: document.querySelector('[data-org-chart-group="admin"]'),
   users: document.querySelector('[data-org-chart-group="users"]'),
 };
+const orgChartContent = document.querySelector('.org-chart-content');
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
 const formatEventTime = (time) => time ? time.slice(0, 5) : '';
@@ -685,6 +686,7 @@ const normalizeOrgChartRole = (role) => String(role || '')
 const createOrgChartNode = (user, isRoot = false) => {
   const node = document.createElement('article');
   node.className = `org-node${isRoot ? ' org-node-root' : ''}`;
+  node.dataset.orgRole = normalizeOrgChartRole(user.role);
 
   const role = normalizeOrgChartRole(user.role);
   if (isRoot || role === 'Admin') {
@@ -713,6 +715,36 @@ const createOrgChartNode = (user, isRoot = false) => {
   return node;
 };
 
+const drawOrgChartLines = () => {
+  orgChartContent.querySelector('.org-chart-lines')?.remove();
+  const rootNode = orgChartGroups.root.querySelector('.org-node-root');
+  const aoNodes = [...orgChartGroups.users.querySelectorAll('[data-org-role^="Account Officer "]')]
+    .filter((node) => /^Account Officer [1-3]$/.test(node.dataset.orgRole));
+  if (!rootNode || aoNodes.length !== 3) return;
+
+  const contentBounds = orgChartContent.getBoundingClientRect();
+  const rootBounds = rootNode.getBoundingClientRect();
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('org-chart-lines');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('viewBox', `0 0 ${contentBounds.width} ${contentBounds.height}`);
+
+  aoNodes.forEach((aoNode) => {
+    const aoBounds = aoNode.getBoundingClientRect();
+    const startX = rootBounds.left + rootBounds.width / 2 - contentBounds.left;
+    const startY = rootBounds.bottom - contentBounds.top;
+    const endX = aoBounds.left + aoBounds.width / 2 - contentBounds.left;
+    const endY = aoBounds.top - contentBounds.top;
+    const controlY = startY + (endY - startY) * 0.55;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    line.setAttribute('d', `M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`);
+    line.classList.add('org-chart-line');
+    svg.appendChild(line);
+  });
+
+  orgChartContent.prepend(svg);
+};
+
 const renderOrgChartUsers = (users) => {
   Object.values(orgChartGroups).forEach((group) => group.replaceChildren());
   users.filter((user) => user.is_active !== false).forEach((user) => {
@@ -720,6 +752,7 @@ const renderOrgChartUsers = (users) => {
     const groupName = role === 'Super Admin' ? 'root' : role === 'Admin' ? 'admin' : 'users';
     orgChartGroups[groupName].appendChild(createOrgChartNode(user, groupName === 'root'));
   });
+  window.requestAnimationFrame(drawOrgChartLines);
 };
 
 const loadOrgChartUsers = async () => {
@@ -765,6 +798,10 @@ const closeOrgChart = () => {
   orgChartModal.hidden = true;
   navigateToView(orgChartReturnView);
 };
+
+window.addEventListener('resize', () => {
+  if (!orgChartModal.hidden) drawOrgChartLines();
+});
 
 navButtons.forEach((button) => {
   button.addEventListener('click', () => {
