@@ -50,7 +50,16 @@ const verifyAppToken = (token) => {
   }
 };
 
-const normalizeRole = (role) => String(role || '').replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1');
+const normalizeRole = (role) => String(role || '')
+  .replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1')
+  .replace(/^Account Assistant ([1-3])$/, 'Account Officer $1');
+
+const officerViewForRole = (role) => {
+  const normalizedRole = normalizeRole(role);
+  return /^Account Officer [1-3]$/.test(normalizedRole)
+    ? normalizedRole.replace('Account Officer ', 'AO')
+    : null;
+};
 
 const validateRbacLogin = (profile, allowedRoles = RBAC_ALLOWED_ROLES) => {
   if (!profile) return { valid: false, code: 'ACCOUNT_NOT_FOUND' };
@@ -239,12 +248,17 @@ app.post('/api/calendar-events', async (request, response) => {
 app.get('/api/employers', async (request, response) => {
   if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
-  if (!(await requireSuperAdmin(request, response))) return;
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
 
-  const { data, error } = await supabaseDatabase
+  let employerQuery = supabaseDatabase
     .from('employers')
     .select('*')
     .order('created_at', { ascending: true });
+  const officerView = officerViewForRole(user.role);
+  if (officerView) employerQuery = employerQuery.eq('assigned_view', officerView);
+
+  const { data, error } = await employerQuery;
 
   if (error) {
     console.error(error);
@@ -254,10 +268,61 @@ app.get('/api/employers', async (request, response) => {
   return response.json(data);
 });
 
+app.get('/api/employer-summary', async (request, response) => {
+  if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
+
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
+
+  const { data, error } = await supabaseDatabase
+    .from('employers')
+    .select('assigned_view, status, total_amount');
+  if (error) {
+    console.error(error);
+    return response.status(500).json({ error: 'Unable to load employer summary.' });
+  }
+
+  const summary = ['AO1', 'AO2', 'AO3'].reduce((result, viewName) => {
+    const employers = (data || []).filter((employer) => employer.assigned_view === viewName);
+    const settled = employers.filter((employer) => employer.status?.toLowerCase() === 'settled').length;
+    const unsettled = employers.filter((employer) => employer.status?.toLowerCase() === 'unsettled').length;
+    const registered = employers.filter((employer) => ['registed', 'registered'].includes(employer.status?.toLowerCase())).length;
+    const unregistered = employers.filter((employer) => ['not yet registered', 'unregistered'].includes(employer.status?.toLowerCase())).length;
+    const billed = employers.reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
+    const settledAmount = employers
+      .filter((employer) => employer.status?.toLowerCase() === 'settled')
+      .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
+    const unsettledAmount = employers
+      .filter((employer) => employer.status?.toLowerCase() === 'unsettled')
+      .reduce((total, employer) => total + Number(employer.total_amount || 0), 0);
+    result[viewName] = {
+      total: employers.length,
+      settled,
+      unsettled,
+      completion: `${employers.length ? ((settled / employers.length) * 100).toFixed(2) : '0.00'}%`,
+      billed: billed.toFixed(2),
+      settledAmount: settledAmount.toFixed(2),
+      unsettledAmount: unsettledAmount.toFixed(2),
+      registered,
+      unregistered,
+    };
+    return result;
+  }, {});
+
+  return response.json(summary);
+});
+
 app.post('/api/employers', async (request, response) => {
   if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
 
-  const employer = request.body;
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
+
+  const employer = { ...request.body };
+  const officerView = officerViewForRole(user.role);
+  if (officerView && employer.assigned_view !== officerView) {
+    return response.status(403).json({ error: `Account Assistant access is limited to ${officerView}.` });
+  }
   const requiredFields = ['assigned_view', 'employer_number', 'employer_name', 'status'];
 
   if (requiredFields.some((field) => !employer[field])) return response.status(400).json({ error: 'Missing required employer fields.' });

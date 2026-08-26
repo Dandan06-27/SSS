@@ -267,8 +267,19 @@ body {
 
 .ao-view[hidden],
 #dashboardView[hidden],
-.officer-view[hidden] {
+.employer-form-page[hidden] {
   display: none;
+}
+
+.employer-form-page {
+  display: grid;
+  place-items: start center;
+  padding: 20px 0 100px;
+}
+
+.employer-form-page .employer-modal {
+  max-height: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
 }
 
 .visually-hidden {
@@ -283,9 +294,12 @@ body {
   border: 0;
 }
 
-.officer-mode #dashboardView,
-.officer-mode .ao-views {
+.officer-mode #dashboardView {
   display: none;
+}
+
+.officer-mode .ao-views {
+  display: block;
 }
 
 .officer-mode #mainNav .dashboard-nav-item,
@@ -313,6 +327,7 @@ body {
   display: grid;
   place-items: start center;
   min-height: 430px;
+  margin-bottom: 100px;
 }
 
 .officer-form-shell {
@@ -470,6 +485,11 @@ body {
   font-weight: bold;
 }
 
+.ao-table thead th {
+  background: #07345f;
+  color: #fff;
+}
+
 .ao-table col:nth-child(1) { width: 95px; }
 .ao-table col:nth-child(2) { width: 130px; }
 .ao-table col:nth-child(3) { width: 150px; }
@@ -495,6 +515,7 @@ body {
 .ao-table col:nth-child(23) { width: 85px; }
 .ao-table col:nth-child(24) { width: 105px; }
 .ao-table col:nth-child(25) { width: 120px; }
+.ao-table col:nth-child(26) { width: 120px; }
 
 /* ── Header ── */
 .main-header {

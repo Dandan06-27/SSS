@@ -18,6 +18,11 @@ const cases = [
     expected: { valid: true, role: 'Account Officer 2' },
   },
   {
+    name: 'normalizes account assistant role',
+    input: { profile: { id: 'user-assistant', role: 'Account Assistant 3', is_active: true }, allowedRoles: ['Account Officer 3'] },
+    expected: { valid: true, role: 'Account Officer 3' },
+  },
+  {
     name: 'rejects unknown account',
     input: { profile: null, allowedRoles: ['Admin'] },
     expected: { valid: false, code: 'ACCOUNT_NOT_FOUND' },

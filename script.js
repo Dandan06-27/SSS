@@ -13,12 +13,20 @@ const returnToLogin = document.getElementById('returnToLogin');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
 const pageWrapper = document.getElementById('dashboardShell');
-const officerView = document.getElementById('officerView');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
 let editingEmployerId = null;
 
-const isOfficerRole = (role) => ['Assistant Officer 1', 'Assistant Officer 2', 'Assistant Officer 3'].includes(role);
+const getOfficerView = (role) => {
+  const normalizedRole = String(role || '')
+    .replace(/^Assistant Officer ([1-3])$/, 'Account Officer $1')
+    .replace(/^Account Assistant ([1-3])$/, 'Account Officer $1');
+  return /^Account Officer [1-3]$/.test(normalizedRole)
+    ? normalizedRole.replace('Account Officer ', 'AO')
+    : '';
+};
+
+const isOfficerRole = (role) => Boolean(getOfficerView(role));
 
 const showAuthForm = (formName) => {
   const isRegister = formName === 'register';
@@ -33,10 +41,23 @@ const showAuthForm = (formName) => {
 
 const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
-  const officerMode = isOfficerRole(account.role);
-  pageWrapper.classList.toggle('officer-mode', officerMode);
-  pageWrapper.dataset.officerView = officerMode ? account.role.replace('Assistant Officer ', 'AO') : '';
-  officerView.hidden = !officerMode;
+  const officerViewName = getOfficerView(account.role);
+  const officerMode = Boolean(officerViewName);
+  const superAdmin = account.role === 'Super Admin';
+  pageWrapper.classList.remove('officer-mode');
+  pageWrapper.dataset.officerView = officerViewName;
+  document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
+    const navView = navItem.dataset.navView;
+    navItem.hidden = (superAdmin && navView.startsWith('AO'))
+      || (officerMode && navView !== officerViewName && navView !== 'EmployerForm');
+  });
+  document.getElementById('employerFormView').hidden = true;
+  document.getElementById('dashboardView').hidden = false;
+  document.querySelectorAll('.ao-view').forEach((view) => {
+    view.hidden = true;
+  });
+  document.querySelector('.ao-views').classList.remove('is-active');
+  document.getElementById('mainNav').dataset.activeView = 'DASHBOARD';
   loggedInUser.textContent = `${account.username} | ${account.role || 'User'}`;
 
   if (animate) {
@@ -59,7 +80,10 @@ const signOut = () => {
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
   delete pageWrapper.dataset.officerView;
-  officerView.hidden = true;
+  document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
+    navItem.hidden = false;
+  });
+  document.getElementById('employerFormView').hidden = true;
   sessionStorage.removeItem('sssAuthenticatedUser');
   dashboardShell.hidden = true;
   authScreen.hidden = false;
@@ -99,6 +123,8 @@ loginForm.addEventListener('submit', async (event) => {
     sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
     showDashboard(result.user, { animate: true });
     syncOfficerFormLayout();
+    loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
+    loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
     loadCalendarEvents().catch((error) => console.error(error));
   } catch (error) {
     loginError.textContent = error.message;
@@ -140,9 +166,8 @@ logoutButton.addEventListener('click', signOut);
 const navButtons = document.querySelectorAll('.nav-btn');
 const mainNav = document.getElementById('mainNav');
 const dashboardView = document.getElementById('dashboardView');
+const employerFormView = document.getElementById('employerFormView');
 const aoViews = document.querySelectorAll('.ao-view');
-const employerModal = document.getElementById('employerModal');
-const officerFormMount = document.getElementById('officerFormMount');
 const employerForm = document.getElementById('employerForm');
 const modalTitle = document.getElementById('employerFormTitle');
 const tableDashboardModal = document.getElementById('tableDashboardModal');
@@ -180,6 +205,7 @@ const masterFileDate = document.getElementById('masterFileDate');
 const masterFileAo = document.getElementById('masterFileAo');
 const masterFileStatus = document.getElementById('masterFileStatus');
 let calendarEvents = [];
+let branchSummary = null;
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
@@ -438,20 +464,37 @@ const getDashboardMetrics = (values) => {
   };
 };
 
+const navigateToView = (viewName) => {
+  const isDashboard = viewName === 'DASHBOARD';
+  const isEmployerForm = viewName === 'EmployerForm';
+  navButtons.forEach((button) => {
+    const buttonView = button.textContent.trim() === 'MASTERFILE' ? 'MasterFile' : button.textContent.trim();
+    button.classList.toggle('active', buttonView === viewName);
+  });
+  dashboardView.hidden = !isDashboard;
+  employerFormView.hidden = !isEmployerForm;
+  aoViews.forEach((view) => {
+    view.hidden = isDashboard || isEmployerForm || view.dataset.aoView !== viewName;
+  });
+  document.querySelector('.ao-views').classList.toggle('is-active', !isDashboard && !isEmployerForm);
+  mainNav.dataset.activeView = viewName;
+};
+
 const refreshMainDashboard = () => {
-  const masterFileMetrics = getDashboardMetrics(getTableEmployers('MasterFile'));
-  Object.entries(masterFileMetrics).forEach(([name, value]) => {
+  const officerViewName = getOfficerView(currentUser?.role);
+  const dashboardMetrics = getDashboardMetrics(getTableEmployers(officerViewName || 'MasterFile'));
+  Object.entries(dashboardMetrics).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-main-metric="${name}"]`);
     if (metric) metric.textContent = value;
   });
   ['settled', 'unsettled'].forEach((name) => {
     const metric = document.querySelector(`[data-status-metric="${name}"]`);
-    if (metric) metric.textContent = masterFileMetrics[name];
+    if (metric) metric.textContent = dashboardMetrics[name];
   });
 
   const branchMetrics = ['AO1', 'AO2', 'AO3'].map((viewName) => ({
     viewName,
-    metrics: getDashboardMetrics(getTableEmployers(viewName)),
+    metrics: branchSummary?.[viewName] || getDashboardMetrics(getTableEmployers(viewName)),
   }));
   branchMetrics.forEach(({ viewName, metrics }) => {
     const row = document.querySelector(`[data-branch-row="${viewName}"]`);
@@ -474,10 +517,10 @@ const refreshMainDashboard = () => {
     branch.metrics.total > leading.metrics.total ? branch : leading
   ));
   document.querySelector('[data-insight="leadingBranch"]').textContent = `${leadingBranch.viewName} currently has the most encoded records (${leadingBranch.metrics.total}).`;
-  document.querySelector('[data-insight="completion"]').textContent = `Overall completion rate: ${masterFileMetrics.completion}`;
-  document.querySelector('[data-insight="billing"]').textContent = `Total billed: P${masterFileMetrics.billed} | Unsettled: P${masterFileMetrics.unsettledAmount}`;
-  document.querySelector('[data-insight="settlement"]').textContent = `Settled: ${masterFileMetrics.settled} | Unsettled: ${masterFileMetrics.unsettled}`;
-  document.querySelector('[data-insight="registration"]').textContent = `Registered: ${masterFileMetrics.registered} | Not Yet Registered: ${masterFileMetrics.unregistered}`;
+  document.querySelector('[data-insight="completion"]').textContent = `Overall completion rate: ${dashboardMetrics.completion}`;
+  document.querySelector('[data-insight="billing"]').textContent = `Total billed: P${dashboardMetrics.billed} | Unsettled: P${dashboardMetrics.unsettledAmount}`;
+  document.querySelector('[data-insight="settlement"]').textContent = `Settled: ${dashboardMetrics.settled} | Unsettled: ${dashboardMetrics.unsettled}`;
+  document.querySelector('[data-insight="registration"]').textContent = `Registered: ${dashboardMetrics.registered} | Not Yet Registered: ${dashboardMetrics.unregistered}`;
   refreshCharts();
 };
 
@@ -516,15 +559,14 @@ const refreshCharts = () => {
 };
 
 const openEmployerModal = (viewName) => {
-  if (isOfficerRole(currentUser?.role)) return;
   editingEmployerId = null;
   employerForm.reset();
-  employerForm.elements.assignedView.value = viewName;
+  employerForm.elements.assignedView.value = getOfficerView(currentUser?.role) || viewName;
   employerForm.classList.remove('is-editing');
   updateEmployerTotal();
-  modalTitle.textContent = `Employer's Data Form - ${viewName}`;
+  modalTitle.textContent = `Employer's Data Form - ${employerForm.elements.assignedView.value}`;
   employerForm.querySelector('.employer-submit-btn').textContent = 'SUBMIT';
-  employerModal.hidden = false;
+  navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
 };
 
@@ -568,34 +610,17 @@ const openEmployerEdit = (row) => {
   employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
   employerForm.classList.add('is-editing');
   updateEmployerTotal();
-  employerModal.hidden = false;
+  navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
 };
 
 const closeEmployerModal = () => {
-  employerModal.hidden = true;
+  navigateToView('DASHBOARD');
 };
 
 const syncOfficerFormLayout = () => {
-  const employerFormShell = document.querySelector('.employer-modal');
-  const closeButton = employerFormShell.querySelector('.modal-close-btn');
-
-  if (isOfficerRole(currentUser?.role)) {
-    const officerViewName = currentUser.role.replace('Assistant Officer ', 'AO');
-    officerFormMount.appendChild(employerFormShell);
-    employerFormShell.classList.add('officer-form');
-    closeButton.hidden = true;
-    modalTitle.id = 'officerFormTitle';
-    employerForm.elements.assignedView.value = officerViewName;
-    modalTitle.textContent = `Employer's Data Form - ${officerViewName}`;
-    employerModal.hidden = true;
-    employerForm.elements.employerNumber.focus();
-    return;
-  }
-
-  employerModal.appendChild(employerFormShell);
-  employerFormShell.classList.remove('officer-form');
-  closeButton.hidden = false;
+  const officerViewName = getOfficerView(currentUser?.role);
+  employerForm.elements.assignedView.value = officerViewName || employerForm.elements.assignedView.value;
   modalTitle.id = 'employerFormTitle';
 };
 
@@ -625,17 +650,13 @@ const closeOrgChart = () => {
 navButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const selectedView = button.textContent.trim();
-    if (selectedView !== 'DASHBOARD' && !selectedView.startsWith('AO') && selectedView !== 'MASTERFILE') return;
-    const isDashboard = selectedView === 'DASHBOARD';
-    const viewName = selectedView === 'MASTERFILE' ? 'MasterFile' : selectedView;
-
-    navButtons.forEach((navButton) => navButton.classList.toggle('active', navButton === button));
-    dashboardView.hidden = !isDashboard;
-    mainNav.dataset.activeView = isDashboard ? 'DASHBOARD' : viewName;
-    document.querySelector('.ao-views').classList.toggle('is-active', !isDashboard);
-    aoViews.forEach((view) => {
-      view.hidden = isDashboard || view.dataset.aoView !== viewName;
-    });
+    const viewName = selectedView === 'MASTERFILE' ? 'MasterFile' : selectedView === 'DATA FORM' ? 'EmployerForm' : selectedView;
+    if (viewName !== 'DASHBOARD' && !viewName.startsWith('AO') && viewName !== 'MasterFile' && viewName !== 'EmployerForm') return;
+    if (viewName === 'EmployerForm') {
+      openEmployerModal(getOfficerView(currentUser?.role) || 'AO1');
+      return;
+    }
+    navigateToView(viewName);
   });
 });
 
@@ -665,10 +686,6 @@ document.querySelector('.modal-close-btn').addEventListener('click', closeEmploy
 tableDashboardClose.addEventListener('click', closeTableDashboard);
 orgChartClose.addEventListener('click', closeOrgChart);
 
-employerModal.addEventListener('click', (event) => {
-  if (event.target === employerModal) closeEmployerModal();
-});
-
 tableDashboardModal.addEventListener('click', (event) => {
   if (event.target === tableDashboardModal) closeTableDashboard();
 });
@@ -678,7 +695,7 @@ orgChartModal.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && !employerModal.hidden) closeEmployerModal();
+  if (event.key === 'Escape' && !employerFormView.hidden) closeEmployerModal();
   if (event.key === 'Escape' && !tableDashboardModal.hidden) closeTableDashboard();
   if (event.key === 'Escape' && !orgChartModal.hidden) closeOrgChart();
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
@@ -778,11 +795,12 @@ const deleteSelectedRows = async () => {
   });
   setTableEditMode(viewName, false);
   refreshMainDashboard();
+  loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
   closeDeleteConfirmation();
 };
 
 const loadEmployers = async () => {
-  if (currentUser?.role !== 'Super Admin') return;
+  if (!currentUser?.accessToken) return;
 
   const response = await fetch('/api/employers', {
     headers: { Authorization: `Bearer ${currentUser.accessToken}` },
@@ -794,6 +812,16 @@ const loadEmployers = async () => {
     addEmployerToTable(employer.assigned_view, employerToRow(employer), employer.id, employer.assigned_view, employer);
     addEmployerToTable('MasterFile', employerToRow(employer), employer.id, employer.assigned_view, employer);
   });
+};
+
+const loadEmployerSummary = async () => {
+  if (!currentUser?.accessToken) return;
+
+  const response = await fetch('/api/employer-summary', {
+    headers: { Authorization: `Bearer ${currentUser.accessToken}` },
+  });
+  if (!response.ok) throw new Error('Unable to load employer summary.');
+  branchSummary = await response.json();
 };
 
 employerForm.addEventListener('submit', async (event) => {
@@ -854,6 +882,7 @@ employerForm.addEventListener('submit', async (event) => {
   addEmployerToTable(savedEmployer.assigned_view, employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   refreshMainDashboard();
+  loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
   closeEmployerModal();
   editingEmployerId = null;
   employerForm.classList.remove('is-editing');
@@ -894,7 +923,9 @@ document.addEventListener('click', (event) => {
   row.classList.toggle('is-selected');
 });
 
-loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
+Promise.all([loadEmployers(), loadEmployerSummary()])
+  .then(() => refreshMainDashboard())
+  .catch((error) => console.error(error));
 loadCalendarEvents().catch((error) => console.error(error));
 
 document.addEventListener('click', (event) => {

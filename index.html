@@ -122,10 +122,56 @@
         <button class="nav-btn">MASTERFILE</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to MasterFile" data-form-view="MasterFile">+</button>
       </div>
+      <div class="nav-item" data-nav-view="EmployerForm">
+        <button class="nav-btn">DATA FORM</button>
+      </div>
     </nav>
 
-    <main class="officer-view" id="officerView" hidden aria-live="polite">
-      <section class="officer-form-shell" id="officerFormMount" aria-labelledby="officerFormTitle"></section>
+    <main class="employer-form-page" id="employerFormView" hidden aria-live="polite">
+      <section class="employer-modal" aria-labelledby="employerFormTitle">
+        <div class="employer-modal-header">
+          <h2 id="employerFormTitle">Employer's Data Form</h2>
+          <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
+        </div>
+        <form class="employer-form" id="employerForm">
+          <input type="hidden" name="employerId" value="">
+          <input type="hidden" name="assignedView" value="">
+          <label>Employer Number:<input name="employerNumber" type="text"></label>
+          <label>Employer Name:<input name="employerName" type="text"></label>
+          <label>Address:<input name="address" type="text"></label>
+          <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
+          <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
+          <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
+          <label>Interest:<input name="interest" type="number" step="0.01" min="0"></label>
+          <label>Total:<input name="totalAmount" type="number" step="0.01" min="0" disabled></label>
+          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0"></label>
+          <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
+          <label>SOA Date Served:<input name="soaDate" type="date"></label>
+          <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
+          <label class="edit-only">Date 3rd SOA (Served):<input name="soa3Date" type="date"></label>
+          <label>Date of Coverage:<input name="coverageDate" type="date"></label>
+          <label class="edit-only">Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
+          <label class="edit-only">Demand Letter Date:<input name="demandLetterDate" type="date"></label>
+          <label class="edit-only">Demand Letter Received Date:<input name="demandLetterReceivedDate" type="date"></label>
+          <label class="edit-only">Handling Lawyer:<input name="handlingLawyer" type="text"></label>
+          <label class="edit-only">Docket #:<input name="docketNumber" type="text"></label>
+          <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
+          <label>Person Received:<input name="personReceived" type="text"></label>
+          <label>Status:
+            <select name="status" required>
+              <option value="" selected disabled>Select status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registed">Registed</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+            </select>
+          </label>
+          <button class="employer-submit-btn" type="submit">SUBMIT</button>
+        </form>
+      </section>
     </main>
 
     <main id="dashboardView">
@@ -326,7 +372,7 @@
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -344,7 +390,7 @@
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -362,7 +408,7 @@
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -409,7 +455,7 @@
                 <th rowspan="2">Employer#</th><th rowspan="2">Employer Name</th><th rowspan="2">Address</th><th rowspan="2">No. of EEs</th><th rowspan="2">Principal</th><th colspan="3" class="header-group-established">Established Collectibles</th><th colspan="3" class="header-group-payment">Payment</th><th rowspan="2">Total</th><th rowspan="2">Date Billing<br>(Served)</th><th rowspan="2">Date 1st<br>SOA (Served)</th><th rowspan="2">Date 2nd<br>SOA (Served)</th><th rowspan="2">Date 3rd<br>SOA (Served)</th><th rowspan="2">Date of<br>Coverage</th><th rowspan="2">Date<br>Referred to<br>Legal</th><th colspan="2" class="header-group-demand">Demand Letter</th><th colspan="3" class="header-group-case">Case Details</th><th rowspan="2">Status</th><th rowspan="2">Person Received</th>
               </tr>
               <tr>
-                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th><th>Status</th>
+                <th>Interest</th><th>Penalty</th><th>Total</th><th>Principal</th><th>Interest</th><th>Penalty</th><th>Date</th><th>Date Delivered<br>to/Received<br>by ER</th><th>Handling<br>Lawyer</th><th>Docket #</th><th>Date</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -417,53 +463,6 @@
         </div>
       </section>
     </main>
-
-    <div class="modal-backdrop" id="employerModal" hidden>
-      <section class="employer-modal" role="dialog" aria-modal="true" aria-labelledby="employerFormTitle">
-        <div class="employer-modal-header">
-          <h2 id="employerFormTitle">Employer's Data Form</h2>
-          <button class="modal-close-btn" type="button" aria-label="Close employer form">&times;</button>
-        </div>
-        <form class="employer-form" id="employerForm">
-          <input type="hidden" name="employerId" value="">
-          <input type="hidden" name="assignedView" value="">
-          <label>Employer Number:<input name="employerNumber" type="text"></label>
-          <label>Employer Name:<input name="employerName" type="text"></label>
-          <label>Address:<input name="address" type="text"></label>
-          <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
-          <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
-          <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
-          <label>Interest:<input name="interest" type="number" step="0.01" min="0"></label>
-          <label>Total:<input name="totalAmount" type="number" step="0.01" min="0" disabled></label>
-          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0"></label>
-          <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
-          <label>SOA Date Served:<input name="soaDate" type="date"></label>
-          <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
-          <label class="edit-only">Date 3rd SOA (Served):<input name="soa3Date" type="date"></label>
-          <label>Date of Coverage:<input name="coverageDate" type="date"></label>
-          <label class="edit-only">Date Referred to Legal:<input name="legalReferralDate" type="date"></label>
-          <label class="edit-only">Demand Letter Date:<input name="demandLetterDate" type="date"></label>
-          <label class="edit-only">Demand Letter Received Date:<input name="demandLetterReceivedDate" type="date"></label>
-          <label class="edit-only">Handling Lawyer:<input name="handlingLawyer" type="text"></label>
-          <label class="edit-only">Docket #:<input name="docketNumber" type="text"></label>
-          <label class="edit-only">Case Date:<input name="caseDate" type="date"></label>
-          <label>Person Received:<input name="personReceived" type="text"></label>
-          <label>Status:
-            <select name="status" required>
-              <option value="" selected disabled>Select status</option>
-              <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registed">Registed</option>
-              <option value="Not Yet Registered">Not Yet Registered</option>
-            </select>
-          </label>
-          <button class="employer-submit-btn" type="submit">SUBMIT</button>
-        </form>
-      </section>
-    </div>
 
     <div class="modal-backdrop" id="tableDashboardModal" hidden>
       <section class="table-dashboard-modal" role="dialog" aria-modal="true" aria-labelledby="tableDashboardTitle">
