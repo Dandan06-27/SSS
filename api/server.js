@@ -118,6 +118,7 @@ app.post('/api/auth/login', async (request, response) => {
     return response.status(500).json({ error: 'Unable to verify account access.' });
   }
 
+  const isAccountAssistant = /^Account Assistant [1-3]$/.test(String(userRecord?.role || ''));
   const validation = validateRbacLogin(userRecord, RBAC_ALLOWED_ROLES);
   if (!validation.valid) {
     const accountErrors = {
@@ -153,6 +154,7 @@ app.post('/api/auth/login', async (request, response) => {
       email: userRecord.email,
       username: userRecord.username || userRecord.email,
       role: userRecord.role,
+      isAccountAssistant,
       accessToken,
     },
   });
@@ -374,7 +376,8 @@ app.patch('/api/employers', async (request, response) => {
   }
 
   const employerFields = [
-    'employer_number', 'employer_name', 'address', 'principal', 'penalty', 'interest', 'total_amount',
+    'employer_number', 'employer_name', 'address', 'address_line1', 'address_country', 'address_state',
+    'address_city', 'address_barangay', 'address_postal_code', 'principal', 'penalty', 'interest', 'total_amount',
     'billing_date', 'coverage_date', 'soa_date', 'employee_count', 'payment_principal', 'payment_interest',
     'payment_penalty', 'payment_total', 'soa2_date', 'soa3_date', 'legal_referral_date', 'demand_letter_date',
     'demand_letter_received_date', 'person_received', 'handling_lawyer', 'docket_number', 'case_date', 'status',

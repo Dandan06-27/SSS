@@ -33,6 +33,12 @@ create table if not exists public.employers (
   employer_number text not null,
   employer_name text not null,
   address text,
+  address_line1 text,
+  address_country text,
+  address_state text,
+  address_city text,
+  address_barangay text,
+  address_postal_code text,
   principal numeric(12, 2) not null default 0,
   penalty numeric(12, 2) not null default 0,
   interest numeric(12, 2) not null default 0,
@@ -71,6 +77,12 @@ create table if not exists public.calendar_events (
 );
 
 alter table public.employers add column if not exists employee_count integer;
+alter table public.employers add column if not exists address_line1 text;
+alter table public.employers add column if not exists address_country text;
+alter table public.employers add column if not exists address_state text;
+alter table public.employers add column if not exists address_city text;
+alter table public.employers add column if not exists address_barangay text;
+alter table public.employers add column if not exists address_postal_code text;
 alter table public.employers add column if not exists person_received text;
 alter table public.employers add column if not exists payment_principal numeric(12, 2);
 alter table public.employers add column if not exists payment_interest numeric(12, 2);

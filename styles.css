@@ -170,41 +170,6 @@ body {
   font: inherit;
 }
 
-.password-input-wrap {
-  position: relative;
-  display: block;
-}
-
-.password-input-wrap input {
-  padding-right: 58px;
-}
-
-.password-toggle {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  padding: 4px 5px;
-  border: 0;
-  background: transparent;
-  color: #315f99;
-  cursor: pointer;
-  font: inherit;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.password-toggle:hover,
-.password-toggle:focus-visible {
-  color: #102f58;
-  text-decoration: underline;
-}
-
-.password-toggle:focus-visible {
-  outline: 2px solid #7396c5;
-  outline-offset: 2px;
-}
-
 .auth-field input:focus {
   outline: 2px solid #7396c5;
   outline-offset: 1px;
@@ -752,6 +717,10 @@ body {
   transform: none;
 }
 
+.org-chart-btn[hidden] {
+  display: none;
+}
+
 .nav-bar[data-active-view="AO1"] .nav-item[data-nav-view="AO1"]:hover .add-record-btn,
 .nav-bar[data-active-view="AO2"] .nav-item[data-nav-view="AO2"]:hover .add-record-btn,
 .nav-bar[data-active-view="AO3"] .nav-item[data-nav-view="AO3"]:hover .add-record-btn,
@@ -810,12 +779,28 @@ body {
   content: '\2611';
 }
 
+@keyframes btn-active {
+  from {
+    opacity: 0.55;
+    transform: translateX(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+}
+
 .nav-btn.active,
 .nav-btn:hover,
 .nav-btn:focus-visible {
   color: #173f78;
   background: #e2edf9;
   transform: translateX(2px);
+}
+
+.nav-btn.active {
+  animation: btn-active 220ms ease-out;
 }
 
 .modal-backdrop {
@@ -931,7 +916,8 @@ body {
 }
 
 .nav-bar .calendar-open-btn:hover,
-.nav-bar .calendar-open-btn:focus-visible {
+.nav-bar .calendar-open-btn:focus-visible,
+.nav-bar .calendar-open-btn.active {
   color: #173f78;
   background: #e2edf9;
   transform: translateX(2px);
@@ -1470,24 +1456,12 @@ body {
   text-align: right;
 }
 
-.employer-form .address-fields {
+.address-fields {
   display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: 1fr;
   gap: 12px;
-  margin: 2px 0 4px;
-  padding: 14px 0;
-  border: 0;
 }
 
-.address-fields legend {
-  padding: 0 5px;
-  color: #111;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.employer-form .address-fields label {
+.address-fields label {
   display: grid;
   grid-template-columns: minmax(170px, 1fr) minmax(220px, 1.5fr);
   align-items: center;
@@ -1495,11 +1469,6 @@ body {
   color: #111;
   font-size: 12px;
   text-align: right;
-}
-
-.address-fields label span {
-  color: #111;
-  font-size: 11px;
 }
 
 .employer-form input,
@@ -1550,7 +1519,6 @@ body {
   font-style: italic;
   font-weight: bold;
 }
-
 
 .employer-submit-btn:hover {
   background: #eef5fb;

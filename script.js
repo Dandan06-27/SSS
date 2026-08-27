@@ -9,16 +9,20 @@ const registerForm = document.getElementById('registerForm');
 const loginError = document.getElementById('loginError');
 const registerError = document.getElementById('registerError');
 const returnToLogin = document.getElementById('returnToLogin');
-const passwordToggle = document.getElementById('passwordToggle');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
+const orgChartButton = document.querySelector('.org-chart-btn');
 const databaseNotification = document.getElementById('databaseNotification');
+const employerSuccessModal = document.getElementById('employerSuccessModal');
+const employerSuccessClose = document.getElementById('employerSuccessClose');
+const employerSuccessOk = document.getElementById('employerSuccessOk');
 const logoutConfirmModal = document.getElementById('logoutConfirmModal');
 const logoutConfirmApprove = document.getElementById('logoutConfirmApprove');
 const logoutConfirmCancel = document.getElementById('logoutConfirmCancel');
 const pageWrapper = document.getElementById('dashboardShell');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
+let dashboardReady = Promise.resolve();
 let editingEmployerId = null;
 let databaseNotificationTimer;
 
@@ -39,20 +43,12 @@ const showAuthForm = (formName) => {
   registerForm.hidden = !isRegister;
 };
 
-passwordToggle.addEventListener('click', () => {
-  const passwordInput = loginForm.elements.password;
-  const isVisible = passwordInput.type === 'text';
-  passwordInput.type = isVisible ? 'password' : 'text';
-  passwordToggle.textContent = isVisible ? 'Show' : 'Hide';
-  passwordToggle.setAttribute('aria-label', `${isVisible ? 'Show' : 'Hide'} password`);
-  passwordToggle.setAttribute('aria-pressed', String(!isVisible));
-});
-
 const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
   const superAdmin = account.role === 'Super Admin';
+  orgChartButton.hidden = officerMode || Boolean(account.isAccountAssistant);
   pageWrapper.classList.remove('officer-mode');
   pageWrapper.classList.add('dashboard-active');
   pageWrapper.dataset.officerView = officerViewName;
@@ -77,12 +73,15 @@ const showDashboard = (account, { animate = false } = {}) => {
   if (animate) {
     authScreen.hidden = false;
     authScreen.classList.add('is-authenticating');
-    window.setTimeout(() => {
-      authScreen.classList.remove('is-authenticating');
-      authScreen.hidden = true;
-      dashboardShell.hidden = false;
-      openOfficerDataForm();
-    }, AUTH_TRANSITION_MS);
+    dashboardReady = new Promise((resolve) => {
+      window.setTimeout(() => {
+        authScreen.classList.remove('is-authenticating');
+        authScreen.hidden = true;
+        dashboardShell.hidden = false;
+        openOfficerDataForm();
+        resolve();
+      }, AUTH_TRANSITION_MS);
+    });
     return;
   }
 
@@ -93,6 +92,7 @@ const showDashboard = (account, { animate = false } = {}) => {
 
 const signOut = () => {
   currentUser = null;
+  orgChartButton.hidden = false;
   logoutConfirmModal.hidden = true;
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
@@ -105,10 +105,6 @@ const signOut = () => {
   dashboardShell.hidden = true;
   authScreen.hidden = false;
   loginForm.reset();
-  loginForm.elements.password.type = 'password';
-  passwordToggle.textContent = 'Show';
-  passwordToggle.setAttribute('aria-label', 'Show password');
-  passwordToggle.setAttribute('aria-pressed', 'false');
   document.getElementById('username').focus();
 };
 
@@ -202,13 +198,14 @@ const dashboardView = document.getElementById('dashboardView');
 const employerFormView = document.getElementById('employerFormView');
 const aoViews = document.querySelectorAll('.ao-view');
 const employerForm = document.getElementById('employerForm');
-const countrySelect = employerForm.elements.addressCountry;
-const citySelect = employerForm.elements.addressCity;
+const countryInput = employerForm.elements.addressCountry;
 const stateSelect = employerForm.elements.addressState;
+const citySelect = employerForm.elements.addressCity;
 const postalCodeInput = employerForm.elements.addressPostalCode;
-let cityRequestController = null;
-let stateRequestController = null;
-let postalCodeRequestController = null;
+const barangayField = employerForm.querySelector('.barangay-field');
+const barangaySelect = employerForm.elements.addressBarangay;
+let addressRequestController = null;
+let barangayRequestController = null;
 const modalTitle = document.getElementById('employerFormTitle');
 const tableDashboardModal = document.getElementById('tableDashboardModal');
 const tableDashboardTitle = document.getElementById('tableDashboardTitle');
@@ -329,7 +326,8 @@ const loadCalendarEvents = async () => {
   if (!response.ok) throw new Error('Unable to load calendar events.');
   calendarEvents = await response.json();
   renderCalendar();
-  showCurrentDateNotification();
+  await dashboardReady;
+  window.setTimeout(showCurrentDateNotification, 500);
 };
 
 const showCalendarPage = () => {
@@ -342,6 +340,7 @@ const showCalendarPage = () => {
   document.querySelector('.ao-views').classList.remove('is-active');
   calendarModal.hidden = false;
   calendarOpenButton.classList.add('active');
+  document.querySelector('.dashboard-nav-item .org-chart-btn').classList.remove('active');
   renderCalendar();
   calendarClose.focus();
 };
@@ -654,8 +653,8 @@ const refreshCharts = () => {
 const openEmployerModal = (viewName) => {
   editingEmployerId = null;
   employerForm.reset();
-  countrySelect.value = 'Philippines';
-  loadAddressRegions('Cebu', 'Toledo');
+  updatePostalCode();
+  loadAddressLocations({ useDefaults: true });
   employerForm.elements.assignedView.value = getOfficerView(currentUser?.role) || viewName;
   employerForm.classList.remove('is-editing');
   updateEmployerTotals();
@@ -667,17 +666,20 @@ const openEmployerModal = (viewName) => {
   employerForm.elements.employerNumber.focus();
 };
 
-const openEmployerEdit = (row) => {
+const openEmployerEdit = async (row) => {
   const employer = JSON.parse(row.dataset.employer || '{}');
   if (!employer.id) return;
   editingEmployerId = employer.id;
   employerForm.reset();
+  employerForm.elements.addressCountry.value = employer.address_country || '';
   Object.entries({
     employerId: employer.id,
     assignedView: employer.assigned_view,
     employerNumber: employer.employer_number,
     employerName: employer.employer_name,
-    addressLine1: employer.address,
+    address: employer.address,
+    addressLine1: employer.address_line1,
+    addressPostalCode: employer.address_postal_code,
     employeeCount: employer.employee_count,
     principal: employer.principal,
     penalty: employer.penalty,
@@ -703,6 +705,19 @@ const openEmployerEdit = (row) => {
   }).forEach(([field, value]) => {
     if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
   });
+  updateBarangayVisibility();
+  await loadAddressLocations();
+  if (employer.address_state) {
+    stateSelect.value = employer.address_state;
+    await loadCitiesForAddress();
+  }
+  if (employer.address_city) {
+    citySelect.value = employer.address_city;
+    await loadBarangaysForAddress();
+  }
+  if (employer.address_barangay) barangaySelect.value = employer.address_barangay;
+  postalCodeInput.value = employer.address_postal_code || postalCodeInput.value;
+  postalCodeInput.readOnly = Boolean(postalCodeInput.value);
   modalTitle.textContent = "Edit Employer's Data";
   employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
   employerForm.classList.add('is-editing');
@@ -713,6 +728,10 @@ const openEmployerEdit = (row) => {
 
 const closeEmployerModal = () => {
   navigateToView('DASHBOARD');
+};
+
+const closeEmployerSuccessModal = () => {
+  employerSuccessModal.hidden = true;
 };
 
 const syncOfficerFormLayout = () => {
@@ -849,6 +868,8 @@ const openOrgChart = () => {
   orgChartModal.hidden = false;
   loadOrgChartUsers();
   document.querySelector('.dashboard-nav-item .nav-btn').classList.remove('active');
+  document.querySelector('.org-chart-btn').classList.add('active');
+  calendarOpenButton.classList.remove('active');
   orgChartClose.focus();
 };
 
@@ -892,6 +913,11 @@ document.querySelector('.org-chart-btn').addEventListener('click', (event) => {
 syncOfficerFormLayout();
 
 document.querySelector('.modal-close-btn').addEventListener('click', closeEmployerModal);
+employerSuccessClose.addEventListener('click', closeEmployerSuccessModal);
+employerSuccessOk.addEventListener('click', closeEmployerSuccessModal);
+employerSuccessModal.addEventListener('click', (event) => {
+  if (event.target === employerSuccessModal) closeEmployerSuccessModal();
+});
 
 tableDashboardClose.addEventListener('click', closeTableDashboard);
 orgChartClose.addEventListener('click', closeOrgChart);
@@ -906,6 +932,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !deleteConfirmModal.hidden) closeDeleteConfirmation();
   if (event.key === 'Escape' && !logoutConfirmModal.hidden) closeLogoutConfirmation();
   if (event.key === 'Escape' && !calendarNotificationModal.hidden) closeCalendarNotification();
+  if (event.key === 'Escape' && !employerSuccessModal.hidden) closeEmployerSuccessModal();
 });
 
 const addEmployerToTable = (viewName, rowValues, employerId, assignedView = viewName, employer = null) => {
@@ -937,19 +964,7 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
   return true;
 };
 
-const formatAddressForDisplay = (address) => {
-  const normalizedAddress = String(address || '').trim();
-  const addressParts = normalizedAddress.match(/^(.+),\s*([^,]+),\s*([^,]+)$/);
-  if (!addressParts) return normalizedAddress;
-
-  const city = addressParts[2].trim();
-  const displayCity = /\bcity$/i.test(city) ? city : `${city} City`;
-  return `${addressParts[1].trim()}, ${displayCity}, ${addressParts[3].trim()}`;
-};
-
-const employerToRow = (employer) => employerFields.map((field) => (
-  field === 'address' ? formatAddressForDisplay(employer[field]) : employer[field] || ''
-));
+const employerToRow = (employer) => employerFields.map((field) => employer[field] || '');
 
 const setTableEditMode = (viewName, isEditing) => {
   const view = document.querySelector(`[data-ao-view="${viewName}"]`);
@@ -1042,128 +1057,121 @@ const loadEmployerSummary = async () => {
   branchSummary = await response.json();
 };
 
-const getEmployerAddress = (formData) => [
-  formData.get('addressLine1'),
-  formData.get('addressCity'),
-  formData.get('addressState'),
-].map((value) => String(value || '').trim()).filter(Boolean).join(', ');
-
-const setCityOptions = (cities, placeholder) => {
-  citySelect.replaceChildren(new Option(placeholder, ''));
-  cities.forEach((city) => {
-    const cityLabel = /\bcity$/i.test(city) ? city : `${city} City`;
-    citySelect.add(new Option(cityLabel, city));
-  });
-  citySelect.disabled = cities.length === 0;
+const updateBarangayVisibility = () => {
+  const isPhilippines = countryInput.value.trim().toLowerCase() === 'philippines';
+  barangayField.hidden = !isPhilippines;
+  if (!isPhilippines) setAddressOptions(barangaySelect, [], 'Select city first');
 };
 
-const getCitiesFromOpenStreetMap = async (country, state, requestController) => {
-  const safeState = state.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const safeCountry = country.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const query = `[out:json][timeout:25];area["name"="${safeCountry}"]["boundary"="administrative"]->.countryArea;area["name"="${safeState}"]["boundary"="administrative"](area.countryArea)->.searchArea;(node["place"~"city|town|village"](area.searchArea);way["place"~"city|town|village"](area.searchArea);relation["place"~"city|town|village"](area.searchArea););out tags;`;
-  const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, {
-    signal: requestController.signal,
-  });
-  if (!response.ok) throw new Error('Unable to load fallback cities.');
-  const result = await response.json();
-  return Array.isArray(result.elements)
-    ? result.elements
-      .map((element) => element.tags?.name)
-      .filter(Boolean)
-    : [];
+const countryNames = `Afghanistan|Albania|Algeria|Andorra|Angola|Antigua and Barbuda|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahamas|Bahrain|Bangladesh|Barbados|Belarus|Belgium|Belize|Benin|Bhutan|Bolivia|Bosnia and Herzegovina|Botswana|Brazil|Brunei|Bulgaria|Burkina Faso|Burundi|Cabo Verde|Cambodia|Cameroon|Canada|Central African Republic|Chad|Chile|China|Colombia|Comoros|Congo|Costa Rica|Croatia|Cuba|Cyprus|Czechia|Democratic Republic of the Congo|Denmark|Djibouti|Dominica|Dominican Republic|Ecuador|Egypt|El Salvador|Equatorial Guinea|Eritrea|Estonia|Eswatini|Ethiopia|Fiji|Finland|France|Gabon|Gambia|Georgia|Germany|Ghana|Greece|Grenada|Guatemala|Guinea|Guyana|Haiti|Honduras|Hungary|Iceland|India|Indonesia|Iran|Iraq|Ireland|Israel|Italy|Jamaica|Japan|Jordan|Kazakhstan|Kenya|Kiribati|Kuwait|Kyrgyzstan|Laos|Latvia|Lebanon|Lesotho|Liberia|Libya|Liechtenstein|Lithuania|Luxembourg|Madagascar|Malawi|Malaysia|Maldives|Mali|Malta|Marshall Islands|Mauritania|Mauritius|Mexico|Micronesia|Moldova|Monaco|Mongolia|Montenegro|Morocco|Mozambique|Myanmar|Namibia|Nauru|Nepal|Netherlands|New Zealand|Nicaragua|Niger|Nigeria|North Korea|North Macedonia|Norway|Oman|Pakistan|Palau|Palestine|Panama|Papua New Guinea|Paraguay|Peru|Philippines|Poland|Portugal|Qatar|Romania|Russia|Rwanda|Saint Kitts and Nevis|Saint Lucia|Saint Vincent and the Grenadines|Samoa|San Marino|Saudi Arabia|Senegal|Serbia|Seychelles|Sierra Leone|Singapore|Slovakia|Slovenia|Solomon Islands|Somalia|South Africa|South Korea|South Sudan|Spain|Sri Lanka|Sudan|Suriname|Sweden|Switzerland|Syria|Taiwan|Tajikistan|Tanzania|Thailand|Timor-Leste|Togo|Tonga|Trinidad and Tobago|Tunisia|Turkey|Turkmenistan|Tuvalu|Uganda|Ukraine|United Arab Emirates|United Kingdom|United States|Uruguay|Uzbekistan|Vanuatu|Vatican City|Venezuela|Vietnam|Yemen|Zambia|Zimbabwe`.split('|');
+countryNames.filter((country) => country !== 'Philippines').forEach((country) => countryInput.add(new Option(country, country)));
+
+const setAddressOptions = (select, values, placeholder) => {
+  select.replaceChildren(new Option(placeholder, ''));
+  values.forEach((value) => select.add(new Option(value, value)));
+  select.disabled = values.length === 0;
 };
 
-const resetPostalCode = () => {
-  postalCodeRequestController?.abort();
-  postalCodeInput.value = '';
-  postalCodeInput.placeholder = 'Select a city';
+const fallbackCitiesByProvince = {
+  Cebu: [
+    'Bogo City',
+    'Carcar City',
+    'Cebu City',
+    'Danao City',
+    'Lapu-Lapu City',
+    'Mandaue City',
+    'Naga City',
+    'Talisay City',
+    'Toledo City',
+  ],
 };
 
-const loadPostalCode = async () => {
-  const country = countrySelect.value;
-  const state = stateSelect.value;
+const postalCodesByLocation = {
+  Philippines: {
+    Cebu: {
+      'Bogo City': '6010',
+      'Carcar City': '6019',
+      'Cebu City': '6000',
+      'Danao City': '6004',
+      'Lapu-Lapu City': '6015',
+      'Mandaue City': '6014',
+      'Naga City': '6037',
+      'Talisay City': '6045',
+      'Toledo City': '6038',
+    },
+  },
+};
+
+const defaultAddress = {
+  country: 'Philippines',
+  province: 'Cebu',
+  city: 'Toledo City',
+};
+
+const normalizeLocationName = (name) => String(name || '')
+  .toLowerCase()
+  .replace(/^city of /, '')
+  .replace(/ city$/, '')
+  .trim();
+
+const loadBarangaysForAddress = async () => {
+  const country = countryInput.value;
+  const province = stateSelect.value;
   const city = citySelect.value;
-  postalCodeRequestController?.abort();
-  if (!country || !state || !city) {
-    resetPostalCode();
-    return;
-  }
+  barangayRequestController?.abort();
+  setAddressOptions(barangaySelect, [], city ? 'Loading barangays...' : 'Select city first');
+  if (country.trim().toLowerCase() !== 'philippines' || !province || !city) return;
 
   const requestController = new AbortController();
-  postalCodeRequestController = requestController;
-  postalCodeInput.value = '';
-  postalCodeInput.placeholder = 'Loading postal code...';
+  barangayRequestController = requestController;
   try {
-    const search = encodeURIComponent(`${city}, ${state}, ${country}`);
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=${search}`, {
+    const provincesResponse = await fetch('https://psgc.gitlab.io/api/provinces/', {
       signal: requestController.signal,
     });
-    if (!response.ok) throw new Error('Unable to load postal code.');
-    const results = await response.json();
-    postalCodeInput.value = results[0]?.address?.postcode || '';
-    postalCodeInput.placeholder = postalCodeInput.value ? 'Automatic postal code' : 'No postal code found';
+    if (!provincesResponse.ok) throw new Error('Unable to load province codes.');
+    const provinces = await provincesResponse.json();
+    const provinceRecord = provinces.find((item) => normalizeLocationName(item.name) === normalizeLocationName(province));
+    if (!provinceRecord) throw new Error('Province not found.');
+
+    const citiesResponse = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceRecord.code}/cities-municipalities/`, {
+      signal: requestController.signal,
+    });
+    if (!citiesResponse.ok) throw new Error('Unable to load city codes.');
+    const cities = await citiesResponse.json();
+    const cityRecord = cities.find((item) => normalizeLocationName(item.name) === normalizeLocationName(city));
+    if (!cityRecord) throw new Error('City not found.');
+
+    const barangaysResponse = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityRecord.code}/barangays/`, {
+      signal: requestController.signal,
+    });
+    if (!barangaysResponse.ok) throw new Error('Unable to load barangays.');
+    const barangays = await barangaysResponse.json();
+    const barangayNames = barangays.map((barangay) => barangay.name).filter(Boolean).sort();
+    setAddressOptions(barangaySelect, barangayNames, barangayNames.length ? 'Select barangay' : 'No barangays found');
   } catch (error) {
-    if (error.name === 'AbortError') return;
-    postalCodeInput.placeholder = 'Enter postal code';
+    if (error.name !== 'AbortError') setAddressOptions(barangaySelect, [], 'Unable to load barangays');
   } finally {
-    if (postalCodeRequestController === requestController) postalCodeRequestController = null;
+    if (barangayRequestController === requestController) barangayRequestController = null;
   }
 };
 
-const loadCitiesForCountryAndState = async (preferredCity = '') => {
-  const country = countrySelect.value;
-  const state = stateSelect.value;
-  cityRequestController?.abort();
-  if (!country || !state) {
-    setCityOptions([], country ? 'Select state first' : 'Select country first');
-    return;
-  }
-
-  const requestController = new AbortController();
-  cityRequestController = requestController;
-  setCityOptions([], 'Loading cities...');
-  citySelect.disabled = true;
-  try {
-    const response = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country, state }),
-      signal: requestController.signal,
-    });
-    if (!response.ok) throw new Error('Unable to load cities.');
-    const result = await response.json();
-    let cities = Array.isArray(result.data)
-      ? [...new Set(result.data)].sort((firstCity, secondCity) => firstCity.localeCompare(secondCity))
-      : [];
-    if (!cities.length) {
-      cities = [...new Set(await getCitiesFromOpenStreetMap(country, state, requestController))]
-        .sort((firstCity, secondCity) => firstCity.localeCompare(secondCity));
-    }
-    setCityOptions(cities, cities.length ? 'Select city' : 'No cities found');
-    if (preferredCity && cities.includes(preferredCity)) {
-      citySelect.value = preferredCity;
-      loadPostalCode();
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') return;
-    setCityOptions([], 'Unable to load cities');
-  } finally {
-    if (cityRequestController === requestController) cityRequestController = null;
-  }
+const updatePostalCode = () => {
+  const postalCode = postalCodesByLocation[countryInput.value]?.[stateSelect.value]?.[citySelect.value] || '';
+  postalCodeInput.value = postalCode;
+  postalCodeInput.readOnly = Boolean(postalCode);
 };
 
-const loadStatesForCountry = async (preferredState = '', preferredCity = '') => {
-  const country = countrySelect.value;
-  stateRequestController?.abort();
-  if (!country) {
-    setStateOptions([], 'Select country first');
-    return;
-  }
+const loadAddressLocations = async ({ useDefaults = false } = {}) => {
+  const country = countryInput.value;
+  addressRequestController?.abort();
+  setAddressOptions(stateSelect, [], country ? 'Loading provinces...' : 'Select country first');
+  setAddressOptions(citySelect, [], 'Select province first');
+  setAddressOptions(barangaySelect, [], 'Select city first');
+  updatePostalCode();
+  if (!country) return;
 
   const requestController = new AbortController();
-  stateRequestController = requestController;
-  setStateOptions([], 'Loading states...');
-  stateSelect.disabled = true;
+  addressRequestController = requestController;
   try {
     const response = await fetch('https://countriesnow.space/api/v0.1/countries/states', {
       method: 'POST',
@@ -1171,44 +1179,62 @@ const loadStatesForCountry = async (preferredState = '', preferredCity = '') => 
       body: JSON.stringify({ country }),
       signal: requestController.signal,
     });
-    if (!response.ok) throw new Error('Unable to load states.');
+    if (!response.ok) throw new Error('Unable to load provinces.');
     const result = await response.json();
-    const states = Array.isArray(result.data?.states)
-      ? result.data.states
-        .map((state) => state.name)
-        .filter(Boolean)
-        .sort((firstState, secondState) => firstState.localeCompare(secondState))
-      : [];
-    setStateOptions(states, states.length ? 'Select state' : 'No states found');
-    if (preferredState && states.includes(preferredState)) {
-      stateSelect.value = preferredState;
-      loadCitiesForCountryAndState(preferredCity);
+    const provinces = (result.data?.states || []).map((province) => province.name).filter(Boolean).sort();
+    setAddressOptions(stateSelect, provinces, provinces.length ? 'Select province' : 'No provinces found');
+    if (useDefaults && country === defaultAddress.country && provinces.includes(defaultAddress.province)) {
+      stateSelect.value = defaultAddress.province;
+      await loadCitiesForAddress();
+      if ([...citySelect.options].some((option) => option.value === defaultAddress.city)) {
+        citySelect.value = defaultAddress.city;
+        updatePostalCode();
+        await loadBarangaysForAddress();
+      }
     }
   } catch (error) {
-    if (error.name === 'AbortError') return;
-    setStateOptions([], 'Unable to load states');
+    if (error.name !== 'AbortError') setAddressOptions(stateSelect, [], 'Unable to load provinces');
   } finally {
-    if (stateRequestController === requestController) stateRequestController = null;
+    if (addressRequestController === requestController) addressRequestController = null;
   }
 };
 
-const setStateOptions = (states, placeholder) => {
-  stateSelect.replaceChildren(new Option(placeholder, ''));
-  states.forEach((state) => stateSelect.add(new Option(state, state)));
-  stateSelect.disabled = states.length === 0;
+const loadCitiesForAddress = async () => {
+  const country = countryInput.value;
+  const province = stateSelect.value;
+  if (!country || !province) {
+    setAddressOptions(citySelect, [], province ? 'Select city' : 'Select province first');
+    setAddressOptions(barangaySelect, [], 'Select city first');
+    updatePostalCode();
+    return;
+  }
+  try {
+    const response = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country, state: province }),
+    });
+    const result = await response.json();
+    const cities = Array.isArray(result.data) && result.data.length
+      ? [...new Set(result.data)].sort()
+      : (fallbackCitiesByProvince[province] || []);
+    setAddressOptions(citySelect, cities, cities.length ? 'Select city' : 'No cities found');
+    updatePostalCode();
+    await loadBarangaysForAddress();
+  } catch (_error) {
+    setAddressOptions(citySelect, [], 'Unable to load cities');
+    updatePostalCode();
+    await loadBarangaysForAddress();
+  }
 };
 
-const loadAddressRegions = (preferredState = '', preferredCity = '') => {
-  resetPostalCode();
-  setCityOptions([], countrySelect.value ? 'Select state first' : 'Select country first');
-  loadStatesForCountry(preferredState, preferredCity);
-};
-
-countrySelect.addEventListener('change', loadAddressRegions);
-stateSelect.addEventListener('change', loadCitiesForCountryAndState);
-stateSelect.addEventListener('change', resetPostalCode);
-citySelect.addEventListener('change', loadPostalCode);
-loadAddressRegions('Cebu', 'Toledo');
+countryInput.addEventListener('input', updateBarangayVisibility);
+countryInput.addEventListener('change', updateBarangayVisibility);
+updateBarangayVisibility();
+countryInput.addEventListener('change', loadAddressLocations);
+stateSelect.addEventListener('change', loadCitiesForAddress);
+citySelect.addEventListener('change', loadBarangaysForAddress);
+loadAddressLocations({ useDefaults: true });
 
 employerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -1217,7 +1243,18 @@ employerForm.addEventListener('submit', async (event) => {
     assigned_view: formData.get('assignedView'),
     employer_number: formData.get('employerNumber'),
     employer_name: formData.get('employerName'),
-    address: getEmployerAddress(formData),
+    address: [
+      formData.get('addressLine1'),
+      formData.get('addressCity'),
+      formData.get('addressState'),
+      formData.get('addressCountry'),
+    ].map((value) => String(value || '').trim()).filter(Boolean).join(', '),
+    address_line1: formData.get('addressLine1') || '',
+    address_country: formData.get('addressCountry') || '',
+    address_state: formData.get('addressState') || '',
+    address_city: formData.get('addressCity') || '',
+    address_barangay: formData.get('addressBarangay') || '',
+    address_postal_code: formData.get('addressPostalCode') || '',
     employee_count: Number(formData.get('employeeCount') || 0),
     principal: Number(formData.get('principal') || 0),
     penalty: Number(formData.get('penalty') || 0),
@@ -1273,10 +1310,9 @@ employerForm.addEventListener('submit', async (event) => {
   addEmployerToTable('MasterFile', employerToRow(savedEmployer), savedEmployer.id, savedEmployer.assigned_view, savedEmployer);
   refreshMainDashboard();
   loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
-  closeEmployerModal();
   editingEmployerId = null;
-  employerForm.classList.remove('is-editing');
-  employerForm.reset();
+  employerSuccessModal.hidden = false;
+  employerSuccessOk.focus();
 });
 
 document.querySelectorAll('.ao-table tbody').forEach((body) => {
