@@ -243,8 +243,6 @@ const orgChartGroups = {
 const orgChartContent = document.querySelector('.org-chart-content');
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
-const formatEventTime = (time) => time ? time.slice(0, 5) : '';
-
 const updateEmployerTotals = () => {
   const principal = Number(employerForm.elements.principal.value || 0);
   const penalty = Number(employerForm.elements.penalty.value || 0);
@@ -272,7 +270,7 @@ const showCurrentDateNotification = () => {
   todaysEvents.forEach((event) => {
     const eventSummary = document.createElement('article');
     eventSummary.className = 'calendar-notification-event';
-    eventSummary.innerHTML = `<h3>${event.title}</h3><p>${formatEventTime(event.start_time)}-${formatEventTime(event.end_time)}</p><p>${event.description || 'No description provided.'}</p>`;
+    eventSummary.innerHTML = `<h3>${event.title}</h3><p>${event.description || 'No description provided.'}</p>`;
     calendarNotificationSummary.appendChild(eventSummary);
   });
   calendarNotificationModal.hidden = false;
@@ -302,7 +300,7 @@ const renderCalendar = () => {
         eventButton.type = 'button';
         eventButton.textContent = event.title;
         eventButton.addEventListener('click', () => {
-          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${event.event_date} | ${formatEventTime(event.start_time)}-${formatEventTime(event.end_time)}</p><p>${event.description || 'No description provided.'}</p>`;
+          calendarSummary.innerHTML = `<h3>${event.title}</h3><p>${event.event_date}</p><p>${event.description || 'No description provided.'}</p>`;
           calendarSummaryModal.hidden = false;
           calendarSummaryClose.focus();
         });
@@ -378,13 +376,6 @@ calendarEventForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   calendarError.hidden = true;
   const formData = new FormData(calendarEventForm);
-  const startTime = formData.get('startTime');
-  const endTime = formData.get('endTime');
-  if (endTime <= startTime) {
-    calendarError.textContent = 'End time must be after start time.';
-    calendarError.hidden = false;
-    return;
-  }
 
   const submitButton = calendarEventForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
@@ -395,8 +386,6 @@ calendarEventForm.addEventListener('submit', async (event) => {
       body: JSON.stringify({
         title: formData.get('title'),
         date: formData.get('date'),
-        startTime,
-        endTime,
         description: formData.get('description'),
       }),
     });

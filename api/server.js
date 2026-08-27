@@ -244,13 +244,17 @@ app.post('/api/calendar-events', async (request, response) => {
   const event = {
     title: String(submittedEvent.title || '').trim(),
     event_date: submittedEvent.date,
-    start_time: submittedEvent.startTime,
-    end_time: submittedEvent.endTime,
+    start_time: submittedEvent.startTime || null,
+    end_time: submittedEvent.endTime || null,
     description: String(submittedEvent.description || '').trim() || null,
     created_by: user.userId,
   };
-  if (!event.title || !event.event_date || !event.start_time || !event.end_time || event.end_time <= event.start_time) {
-    return response.status(400).json({ error: 'Valid event title, date, and time range are required.' });
+  if (!event.title || !event.event_date) {
+    return response.status(400).json({ error: 'Valid event title and date are required.' });
+  }
+  if ((event.start_time && !event.end_time) || (!event.start_time && event.end_time)
+    || (event.start_time && event.end_time && event.end_time <= event.start_time)) {
+    return response.status(400).json({ error: 'Both event times are required when specifying a time range.' });
   }
 
   const { data, error } = await supabaseDatabase
