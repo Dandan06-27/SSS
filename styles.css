@@ -417,6 +417,10 @@ body {
   background: #f8fafc;
 }
 
+.masterfile-table-filters {
+  grid-template-columns: minmax(260px, 1fr) repeat(3, 180px);
+}
+
 .ao-table-filters label,
 .ao-table-search {
   position: relative;
@@ -442,6 +446,10 @@ body {
 @media (max-width: 900px) {
   .ao-table-filters {
     grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr));
+  }
+
+  .masterfile-table-filters {
+    grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 1fr));
   }
 }
 

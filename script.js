@@ -529,6 +529,7 @@ const filterAoTable = (viewName) => {
   const query = filters.querySelector('input[type="search"]').value.trim().toLowerCase();
   const selectedDate = filters.querySelector('[data-filter-date]').value;
   const selectedStatus = normalizeStatus(filters.querySelector('[data-filter-status]').value);
+  const selectedView = filters.querySelector('[data-filter-view]')?.value || '';
   const rows = [...view.querySelectorAll('tbody tr[data-employer-id]')];
 
   rows.forEach((row) => {
@@ -537,7 +538,8 @@ const filterAoTable = (viewName) => {
     const isDueDate = isBillingDue(row.cells[12]?.dataset.date);
     const matchesStatus = !selectedStatus
       || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[23]?.textContent || '') === selectedStatus);
-    const isVisible = matchesQuery && matchesDate && matchesStatus;
+    const matchesView = !selectedView || row.dataset.assignedView === selectedView;
+    const isVisible = matchesQuery && matchesDate && matchesStatus && matchesView;
     row.hidden = !isVisible;
   });
 };

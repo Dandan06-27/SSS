@@ -506,6 +506,35 @@
       </section>
 
       <section class="ao-view" data-ao-view="MasterFile">
+        <div class="ao-table-filters masterfile-table-filters" aria-label="MasterFile table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter MasterFile by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by AO</span>
+            <select data-filter-view aria-label="Filter MasterFile by AO">
+              <option value="">All AO</option>
+              <option value="AO1">AO1</option>
+              <option value="AO2">AO2</option>
+              <option value="AO3">AO3</option>
+            </select>
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter MasterFile by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
