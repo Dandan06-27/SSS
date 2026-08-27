@@ -132,6 +132,8 @@ body {
 .login-card {
   width: min(390px, 100%);
   padding: 38px 28px 34px;
+  transform: scale(1.375);
+  transform-origin: center;
   border: 1px solid #e7ebf0;
   border-radius: 22px;
   box-shadow: 0 20px 45px rgba(21, 47, 81, 0.13);
