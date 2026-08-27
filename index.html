@@ -30,7 +30,10 @@
           </label>
           <label class="auth-field">
             <span>Password</span>
-            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <span class="password-input-wrap">
+              <input id="password" name="password" type="password" autocomplete="current-password" required>
+              <button class="password-toggle" id="passwordToggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
+            </span>
           </label>
           <p class="login-error" id="loginError" role="alert" hidden>Invalid username or password.</p>
           <button class="login-submit" type="submit">Secure login</button>
@@ -77,23 +80,19 @@
       <span class="header-logo-window">
         <img class="header-logo" src="source/TECHNICAL%20DESCRIPTIONS.svg" alt="SSS logo">
       </span>
-      <h1 class="header-title">AMS SSS</h1>
+      <h1 class="header-title">SOCIAL SECURITY SYSTEM</h1>
       <p class="header-subtitle">Employer Encoding, Billing, &amp; Settlement Monitoring System</p>
       <p class="header-dashboard">MONTHLY OPERATIONS DASHBOARD</p>
       <p class="header-meta">REPORTING DATE: 13 - Aug 2026 &nbsp;|&nbsp; UPDATED: 13 - Aug 2026 22:17</p>
-      <div class="header-session">
-        <span id="loggedInUser"></span>
-        <button id="logoutButton" type="button">Sign out</button>
-      </div>
     </header>
 
     <!-- Navigation -->
     <nav class="nav-bar" id="mainNav">
       <div class="dashboard-nav-item">
         <button class="nav-btn active" aria-label="Open dashboard" title="Dashboard">DASHBOARD</button>
-        <button class="org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">&#9672;</button>
+        <button class="nav-btn org-chart-btn" type="button" aria-label="Open organizational chart" title="Organizational chart">ORGANIZATIONAL CHART</button>
       </div>
-      <button class="calendar-open-btn" id="calendarOpenButton" type="button" aria-label="Open calendar" title="Calendar">Open calendar</button>
+      <button class="calendar-open-btn" id="calendarOpenButton" type="button" aria-label="Open calendar" title="Calendar">CALENDAR</button>
       <div class="nav-item" data-nav-view="AO1">
         <button class="nav-btn" aria-label="Open AO1" title="AO1">AO1</button>
         <button class="add-record-btn" type="button" aria-label="Add employer to AO1" data-form-view="AO1">+</button>
@@ -113,7 +112,13 @@
       <div class="nav-item" data-nav-view="EmployerForm">
         <button class="nav-btn" aria-label="Open data form" title="Data form">DATA FORM</button>
       </div>
+      <div class="header-session sidebar-session">
+        <span id="loggedInUser"></span>
+        <button id="logoutButton" type="button">Sign out</button>
+      </div>
     </nav>
+
+    <div class="database-notification" id="databaseNotification" role="status" aria-live="polite" hidden></div>
 
     <main class="employer-form-page" id="employerFormView" hidden aria-live="polite">
       <section class="employer-modal" aria-labelledby="employerFormTitle">
@@ -126,7 +131,282 @@
           <input type="hidden" name="assignedView" value="">
           <label>Employer Number:<input name="employerNumber" type="text"></label>
           <label>Employer Name:<input name="employerName" type="text"></label>
-          <label>Address:<input name="address" type="text"></label>
+          <input name="address" type="hidden">
+          <fieldset class="address-fields">
+            <label>
+              <span>Address</span>
+              <input name="addressLine1" type="text" autocomplete="address-line1">
+            </label>
+            <label>
+              <span>Country</span>
+              <select name="addressCountry" autocomplete="country-name">
+                <option value="">Select country</option>
+                <option>Afghanistan</option>
+                <option>Albania</option>
+                <option>Algeria</option>
+                <option>Andorra</option>
+                <option>Angola</option>
+                <option>Antigua and Barbuda</option>
+                <option>Argentina</option>
+                <option>Armenia</option>
+                <option>Australia</option>
+                <option>Austria</option>
+                <option>Azerbaijan</option>
+                <option>Bahamas</option>
+                <option>Bahrain</option>
+                <option>Bangladesh</option>
+                <option>Barbados</option>
+                <option>Belarus</option>
+                <option>Belgium</option>
+                <option>Belize</option>
+                <option>Benin</option>
+                <option>Bhutan</option>
+                <option>Bolivia</option>
+                <option>Bosnia and Herzegovina</option>
+                <option>Botswana</option>
+                <option>Brazil</option>
+                <option>Brunei</option>
+                <option>Bulgaria</option>
+                <option>Burkina Faso</option>
+                <option>Burundi</option>
+                <option>Cabo Verde</option>
+                <option>Cambodia</option>
+                <option>Cameroon</option>
+                <option>Canada</option>
+                <option>Central African Republic</option>
+                <option>Chad</option>
+                <option>Chile</option>
+                <option>China</option>
+                <option>Colombia</option>
+                <option>Comoros</option>
+                <option>Congo</option>
+                <option>Costa Rica</option>
+                <option>Cote d'Ivoire</option>
+                <option>Croatia</option>
+                <option>Cuba</option>
+                <option>Cyprus</option>
+                <option>Czechia</option>
+                <option>Democratic Republic of the Congo</option>
+                <option>Denmark</option>
+                <option>Djibouti</option>
+                <option>Dominica</option>
+                <option>Dominican Republic</option>
+                <option>Ecuador</option>
+                <option>Egypt</option>
+                <option>El Salvador</option>
+                <option>Equatorial Guinea</option>
+                <option>Eritrea</option>
+                <option>Estonia</option>
+                <option>Eswatini</option>
+                <option>Ethiopia</option>
+                <option>Fiji</option>
+                <option>Finland</option>
+                <option>France</option>
+                <option>Gabon</option>
+                <option>Gambia</option>
+                <option>Georgia</option>
+                <option>Germany</option>
+                <option>Ghana</option>
+                <option>Greece</option>
+                <option>Grenada</option>
+                <option>Guatemala</option>
+                <option>Guinea</option>
+                <option>Guinea-Bissau</option>
+                <option>Guyana</option>
+                <option>Haiti</option>
+                <option>Honduras</option>
+                <option>Hungary</option>
+                <option>Iceland</option>
+                <option>India</option>
+                <option>Indonesia</option>
+                <option>Iran</option>
+                <option>Iraq</option>
+                <option>Ireland</option>
+                <option>Israel</option>
+                <option>Italy</option>
+                <option>Jamaica</option>
+                <option>Japan</option>
+                <option>Jordan</option>
+                <option>Kazakhstan</option>
+                <option>Kenya</option>
+                <option>Kiribati</option>
+                <option>Kuwait</option>
+                <option>Kyrgyzstan</option>
+                <option>Laos</option>
+                <option>Latvia</option>
+                <option>Lebanon</option>
+                <option>Lesotho</option>
+                <option>Liberia</option>
+                <option>Libya</option>
+                <option>Liechtenstein</option>
+                <option>Lithuania</option>
+                <option>Luxembourg</option>
+                <option>Madagascar</option>
+                <option>Malawi</option>
+                <option>Malaysia</option>
+                <option>Maldives</option>
+                <option>Mali</option>
+                <option>Malta</option>
+                <option>Marshall Islands</option>
+                <option>Mauritania</option>
+                <option>Mauritius</option>
+                <option>Mexico</option>
+                <option>Micronesia</option>
+                <option>Moldova</option>
+                <option>Monaco</option>
+                <option>Mongolia</option>
+                <option>Montenegro</option>
+                <option>Morocco</option>
+                <option>Mozambique</option>
+                <option>Myanmar</option>
+                <option>Namibia</option>
+                <option>Nauru</option>
+                <option>Nepal</option>
+                <option>Netherlands</option>
+                <option>New Zealand</option>
+                <option>Nicaragua</option>
+                <option>Niger</option>
+                <option>Nigeria</option>
+                <option>North Korea</option>
+                <option>North Macedonia</option>
+                <option>Norway</option>
+                <option>Oman</option>
+                <option>Pakistan</option>
+                <option>Palau</option>
+                <option>Palestine</option>
+                <option>Panama</option>
+                <option>Papua New Guinea</option>
+                <option>Paraguay</option>
+                <option>Peru</option>
+                <option selected>Philippines</option>
+                <option>Poland</option>
+                <option>Portugal</option>
+                <option>Qatar</option>
+                <option>Romania</option>
+                <option>Russia</option>
+                <option>Rwanda</option>
+                <option>Saint Kitts and Nevis</option>
+                <option>Saint Lucia</option>
+                <option>Saint Vincent and the Grenadines</option>
+                <option>Samoa</option>
+                <option>San Marino</option>
+                <option>Sao Tome and Principe</option>
+                <option>Saudi Arabia</option>
+                <option>Senegal</option>
+                <option>Serbia</option>
+                <option>Seychelles</option>
+                <option>Sierra Leone</option>
+                <option>Singapore</option>
+                <option>Slovakia</option>
+                <option>Slovenia</option>
+                <option>Solomon Islands</option>
+                <option>Somalia</option>
+                <option>South Africa</option>
+                <option>South Korea</option>
+                <option>South Sudan</option>
+                <option>Spain</option>
+                <option>Sri Lanka</option>
+                <option>Sudan</option>
+                <option>Suriname</option>
+                <option>Sweden</option>
+                <option>Switzerland</option>
+                <option>Syria</option>
+                <option>Taiwan</option>
+                <option>Tajikistan</option>
+                <option>Tanzania</option>
+                <option>Thailand</option>
+                <option>Timor-Leste</option>
+                <option>Togo</option>
+                <option>Tonga</option>
+                <option>Trinidad and Tobago</option>
+                <option>Tunisia</option>
+                <option>Turkey</option>
+                <option>Turkmenistan</option>
+                <option>Tuvalu</option>
+                <option>Uganda</option>
+                <option>Ukraine</option>
+                <option>United Arab Emirates</option>
+                <option selected>United States</option>
+                <option>United Kingdom</option>
+                <option>Uruguay</option>
+                <option>Uzbekistan</option>
+                <option>Vanuatu</option>
+                <option>Vatican City</option>
+                <option>Venezuela</option>
+                <option>Vietnam</option>
+                <option>Yemen</option>
+                <option>Zambia</option>
+                <option>Zimbabwe</option>
+              </select>
+            </label>
+            <label>
+              <span>City</span>
+              <select name="addressCity" autocomplete="address-level2" disabled>
+                <option value="">Select country first</option>
+              </select>
+            </label>
+            <label>
+              <span>State</span>
+              <select name="addressState" autocomplete="address-level1">
+                <option value="">Select state</option>
+                <option>Alabama</option>
+                <option>Alaska</option>
+                <option>Arizona</option>
+                <option>Arkansas</option>
+                <option>California</option>
+                <option>Colorado</option>
+                <option>Connecticut</option>
+                <option>Delaware</option>
+                <option>District of Columbia</option>
+                <option>Florida</option>
+                <option>Georgia</option>
+                <option>Hawaii</option>
+                <option>Idaho</option>
+                <option>Illinois</option>
+                <option>Indiana</option>
+                <option>Iowa</option>
+                <option>Kansas</option>
+                <option>Kentucky</option>
+                <option>Louisiana</option>
+                <option>Maine</option>
+                <option>Maryland</option>
+                <option>Massachusetts</option>
+                <option>Michigan</option>
+                <option>Minnesota</option>
+                <option>Mississippi</option>
+                <option>Missouri</option>
+                <option>Montana</option>
+                <option>Nebraska</option>
+                <option>Nevada</option>
+                <option>New Hampshire</option>
+                <option>New Jersey</option>
+                <option>New Mexico</option>
+                <option>New York</option>
+                <option>North Carolina</option>
+                <option>North Dakota</option>
+                <option>Ohio</option>
+                <option>Oklahoma</option>
+                <option>Oregon</option>
+                <option>Pennsylvania</option>
+                <option>Rhode Island</option>
+                <option>South Carolina</option>
+                <option>South Dakota</option>
+                <option>Tennessee</option>
+                <option>Texas</option>
+                <option>Utah</option>
+                <option>Vermont</option>
+                <option>Virginia</option>
+                <option>Washington</option>
+                <option>West Virginia</option>
+                <option>Wisconsin</option>
+                <option>Wyoming</option>
+              </select>
+            </label>
+            <label>
+              <span>Postal Code</span>
+              <input name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code">
+            </label>
+          </fieldset>
           <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
           <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
           <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
@@ -135,7 +415,7 @@
           <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
           <label class="edit-only">Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
           <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0"></label>
+          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0" disabled></label>
           <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
           <label>SOA Date Served:<input name="soaDate" type="date"></label>
           <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>
@@ -350,6 +630,26 @@
 
     <main class="ao-views" aria-live="polite">
       <section class="ao-view" data-ao-view="AO1">
+        <div class="ao-table-filters" aria-label="AO1 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO1 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO1 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO1 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
@@ -368,6 +668,26 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO2">
+        <div class="ao-table-filters" aria-label="AO2 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO2 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO2 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO2 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
@@ -386,6 +706,26 @@
       </section>
 
       <section class="ao-view" data-ao-view="AO3">
+        <div class="ao-table-filters" aria-label="AO3 table filters">
+          <label class="ao-table-search">
+            <input type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search AO3 records">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by date</span>
+            <input type="date" data-filter-date aria-label="Filter AO3 by billing date">
+          </label>
+          <label>
+            <span class="visually-hidden">Filter by status</span>
+            <select data-filter-status aria-label="Filter AO3 by status">
+              <option value="">All Status</option>
+              <option value="Settled">Settled</option>
+              <option value="Unsettled">Unsettled</option>
+              <option value="Registered">Registered</option>
+              <option value="Not Yet Registered">Not Yet Registered</option>
+              <option value="Due Date">Due Date</option>
+            </select>
+          </label>
+        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
@@ -404,35 +744,6 @@
       </section>
 
       <section class="ao-view" data-ao-view="MasterFile">
-        <div class="masterfile-filters" aria-label="MasterFile filters">
-          <label class="masterfile-search">
-            <input id="masterFileSearch" type="search" placeholder="Search by SSS Number, Member Name, or Queue #..." aria-label="Search MasterFile records">
-          </label>
-          <label class="masterfile-date">
-            <span class="visually-hidden">Filter by date</span>
-            <input id="masterFileDate" type="date" aria-label="Filter MasterFile by billing date">
-          </label>
-          <label>
-            <span class="visually-hidden">Filter by AO</span>
-            <select id="masterFileAo" aria-label="Filter MasterFile by AO">
-              <option value="">ALL AO</option>
-              <option value="AO1">AO1</option>
-              <option value="AO2">AO2</option>
-              <option value="AO3">AO3</option>
-            </select>
-          </label>
-          <label>
-            <span class="visually-hidden">Filter by status</span>
-            <select id="masterFileStatus" aria-label="Filter MasterFile by status">
-              <option value="">All Status</option>
-              <option value="Settled">Settled</option>
-              <option value="Unsettled">Unsettled</option>
-              <option value="Registered">Registered</option>
-              <option value="Not Yet Registered">Not Yet Registered</option>
-              <option value="Due Date">Due Date</option>
-            </select>
-          </label>
-        </div>
         <div class="ao-table-wrap">
           <table class="ao-table">
             <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>

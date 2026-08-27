@@ -364,7 +364,8 @@ app.post('/api/employers', async (request, response) => {
 
 app.patch('/api/employers', async (request, response) => {
   if (!supabase) return response.status(503).json({ error: 'Supabase is not configured.' });
-  if (!(await requireSuperAdmin(request, response))) return;
+  const user = await requireAuthenticatedUser(request, response);
+  if (!user) return;
 
   const id = Number(request.body?.id);
   const submittedEmployer = request.body?.employer;
@@ -382,15 +383,20 @@ app.patch('/api/employers', async (request, response) => {
     .filter((field) => Object.prototype.hasOwnProperty.call(submittedEmployer, field))
     .map((field) => [field, submittedEmployer[field]]));
 
-  const { data, error } = await supabaseDatabase
+  let employerQuery = supabaseDatabase
     .from('employers')
     .update(employer)
-    .eq('id', id)
-    .select()
-    .single();
+    .eq('id', id);
+  const officerView = officerViewForRole(user.role);
+  if (officerView) employerQuery = employerQuery.eq('assigned_view', officerView);
+
+  const { data, error } = await employerQuery.select().single();
 
   if (error) {
     console.error(error);
+    if (error.code === 'PGRST116') {
+      return response.status(404).json({ error: 'Employer was not found in your assigned view.' });
+    }
     if (isMissingPersonReceivedColumn(error)) {
       return response.status(500).json({ error: 'Database setup is incomplete. Run: alter table public.employers add column if not exists person_received text;' });
     }

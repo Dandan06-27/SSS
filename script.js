@@ -9,8 +9,10 @@ const registerForm = document.getElementById('registerForm');
 const loginError = document.getElementById('loginError');
 const registerError = document.getElementById('registerError');
 const returnToLogin = document.getElementById('returnToLogin');
+const passwordToggle = document.getElementById('passwordToggle');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
+const databaseNotification = document.getElementById('databaseNotification');
 const logoutConfirmModal = document.getElementById('logoutConfirmModal');
 const logoutConfirmApprove = document.getElementById('logoutConfirmApprove');
 const logoutConfirmCancel = document.getElementById('logoutConfirmCancel');
@@ -18,6 +20,7 @@ const pageWrapper = document.getElementById('dashboardShell');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
 let editingEmployerId = null;
+let databaseNotificationTimer;
 
 const getOfficerView = (role) => {
   const normalizedRole = String(role || '')
@@ -35,6 +38,15 @@ const showAuthForm = (formName) => {
   loginForm.hidden = isRegister;
   registerForm.hidden = !isRegister;
 };
+
+passwordToggle.addEventListener('click', () => {
+  const passwordInput = loginForm.elements.password;
+  const isVisible = passwordInput.type === 'text';
+  passwordInput.type = isVisible ? 'password' : 'text';
+  passwordToggle.textContent = isVisible ? 'Show' : 'Hide';
+  passwordToggle.setAttribute('aria-label', `${isVisible ? 'Show' : 'Hide'} password`);
+  passwordToggle.setAttribute('aria-pressed', String(!isVisible));
+});
 
 const showDashboard = (account, { animate = false } = {}) => {
   currentUser = account;
@@ -93,6 +105,10 @@ const signOut = () => {
   dashboardShell.hidden = true;
   authScreen.hidden = false;
   loginForm.reset();
+  loginForm.elements.password.type = 'password';
+  passwordToggle.textContent = 'Show';
+  passwordToggle.setAttribute('aria-label', 'Show password');
+  passwordToggle.setAttribute('aria-pressed', 'false');
   document.getElementById('username').focus();
 };
 
@@ -186,6 +202,13 @@ const dashboardView = document.getElementById('dashboardView');
 const employerFormView = document.getElementById('employerFormView');
 const aoViews = document.querySelectorAll('.ao-view');
 const employerForm = document.getElementById('employerForm');
+const countrySelect = employerForm.elements.addressCountry;
+const citySelect = employerForm.elements.addressCity;
+const stateSelect = employerForm.elements.addressState;
+const postalCodeInput = employerForm.elements.addressPostalCode;
+let cityRequestController = null;
+let stateRequestController = null;
+let postalCodeRequestController = null;
 const modalTitle = document.getElementById('employerFormTitle');
 const tableDashboardModal = document.getElementById('tableDashboardModal');
 const tableDashboardTitle = document.getElementById('tableDashboardTitle');
@@ -217,10 +240,6 @@ const calendarNotificationClose = document.getElementById('calendarNotificationC
 const calendarNotificationOpen = document.getElementById('calendarNotificationOpen');
 const calendarNotificationDismiss = document.getElementById('calendarNotificationDismiss');
 const calendarNotificationSummary = document.getElementById('calendarNotificationSummary');
-const masterFileSearch = document.getElementById('masterFileSearch');
-const masterFileDate = document.getElementById('masterFileDate');
-const masterFileAo = document.getElementById('masterFileAo');
-const masterFileStatus = document.getElementById('masterFileStatus');
 let calendarEvents = [];
 let branchSummary = null;
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -236,15 +255,23 @@ const orgChartContent = document.querySelector('.org-chart-content');
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
 const formatEventTime = (time) => time ? time.slice(0, 5) : '';
 
-const updateEmployerTotal = () => {
+const updateEmployerTotals = () => {
   const principal = Number(employerForm.elements.principal.value || 0);
   const penalty = Number(employerForm.elements.penalty.value || 0);
   const interest = Number(employerForm.elements.interest.value || 0);
   employerForm.elements.totalAmount.value = (principal + penalty + interest).toFixed(2);
+  const paymentPrincipal = Number(employerForm.elements.paymentPrincipal.value || 0);
+  const paymentInterest = Number(employerForm.elements.paymentInterest.value || 0);
+  const paymentPenalty = Number(employerForm.elements.paymentPenalty.value || 0);
+  employerForm.elements.paymentTotal.value = (paymentPrincipal + paymentInterest + paymentPenalty).toFixed(2);
 };
 
 ['principal', 'penalty', 'interest'].forEach((fieldName) => {
-  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotal);
+  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotals);
+});
+
+['paymentPrincipal', 'paymentInterest', 'paymentPenalty'].forEach((fieldName) => {
+  employerForm.elements[fieldName].addEventListener('input', updateEmployerTotals);
 });
 
 const showCurrentDateNotification = () => {
@@ -433,11 +460,20 @@ const employerFields = [
   'status',
   'person_received',
 ];
+const amountFieldIndexes = [4, 5, 6, 7, 8, 9, 10, 11];
 
 const getTableEmployers = (viewName) => [...document.querySelectorAll(`[data-ao-view="${viewName}"] .ao-table tbody tr[data-employer-id]`)]
   .map((row) => [...row.cells].map((cell) => cell.textContent.trim()));
 
 const normalizeStatus = (status) => status.trim().toLowerCase().replace('registed', 'registered');
+const parseAmount = (value) => Number(String(value ?? '').replace(/,/g, '')) || 0;
+const formatAmount = (value) => {
+  const amount = Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(amount)
+    ? amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+};
+const isAmountMetric = (name) => ['billed', 'settledAmount', 'unsettledAmount'].includes(name);
 const BILLING_DUE_DAYS = 15;
 
 const getBillingDueDate = (billingDate) => {
@@ -457,21 +493,37 @@ const isBillingDue = (billingDate, today = new Date()) => {
   return currentDate >= dueDate;
 };
 
-const filterMasterFile = () => {
-  const query = masterFileSearch.value.trim().toLowerCase();
-  const selectedDate = masterFileDate.value;
-  const selectedAo = masterFileAo.value;
-  const selectedStatus = normalizeStatus(masterFileStatus.value);
-  const rows = [...document.querySelectorAll('[data-ao-view="MasterFile"] tbody tr[data-employer-id]')];
+const showDatabaseDueNotification = (viewName) => {
+  const view = document.querySelector(`[data-ao-view="${viewName}"]`);
+  if (!view || !databaseNotification) return;
+
+  const dueCount = [...view.querySelectorAll('tbody tr[data-employer-id]')]
+    .filter((row) => isBillingDue(row.cells[12]?.dataset.date)).length;
+  databaseNotification.textContent = `${dueCount} due ${dueCount === 1 ? 'record' : 'records'} found.`;
+  databaseNotification.hidden = false;
+  clearTimeout(databaseNotificationTimer);
+  databaseNotificationTimer = window.setTimeout(() => {
+    databaseNotification.hidden = true;
+  }, 3000);
+};
+
+const filterAoTable = (viewName) => {
+  const view = document.querySelector(`[data-ao-view="${viewName}"]`);
+  const filters = view?.querySelector('.ao-table-filters');
+  if (!filters) return;
+
+  const query = filters.querySelector('input[type="search"]').value.trim().toLowerCase();
+  const selectedDate = filters.querySelector('[data-filter-date]').value;
+  const selectedStatus = normalizeStatus(filters.querySelector('[data-filter-status]').value);
+  const rows = [...view.querySelectorAll('tbody tr[data-employer-id]')];
 
   rows.forEach((row) => {
     const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
     const matchesDate = !selectedDate || row.cells[12]?.dataset.date === selectedDate;
-    const matchesAo = !selectedAo || row.dataset.assignedView === selectedAo;
     const isDueDate = isBillingDue(row.cells[12]?.dataset.date);
     const matchesStatus = !selectedStatus
       || (selectedStatus === 'due date' ? isDueDate : normalizeStatus(row.cells[23]?.textContent || '') === selectedStatus);
-    const isVisible = matchesQuery && matchesDate && matchesAo && matchesStatus;
+    const isVisible = matchesQuery && matchesDate && matchesStatus;
     row.hidden = !isVisible;
   });
 };
@@ -480,11 +532,11 @@ const getDashboardMetrics = (values) => {
   const total = values.length;
   const settled = values.filter((row) => row[23].toLowerCase() === 'settled').length;
   const unsettled = values.filter((row) => row[23].toLowerCase() === 'unsettled').length;
-  const billed = values.reduce((sum, row) => sum + Number(row[7] || 0), 0);
+  const billed = values.reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const settledAmount = values.filter((row) => row[23].toLowerCase() === 'settled')
-    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const unsettledAmount = values.filter((row) => row[23].toLowerCase() === 'unsettled')
-    .reduce((sum, row) => sum + Number(row[7] || 0), 0);
+    .reduce((sum, row) => sum + parseAmount(row[7]), 0);
   const registered = values.filter((row) => ['registed', 'registered'].includes(row[23].toLowerCase())).length;
   const unregistered = values.filter((row) => ['not yet registered', 'unregistered'].includes(row[23].toLowerCase())).length;
 
@@ -493,9 +545,9 @@ const getDashboardMetrics = (values) => {
     settled,
     unsettled,
     completion: `${total ? ((settled / total) * 100).toFixed(2) : '0.00'}%`,
-    billed: billed.toFixed(2),
-    settledAmount: settledAmount.toFixed(2),
-    unsettledAmount: unsettledAmount.toFixed(2),
+    billed: formatAmount(billed),
+    settledAmount: formatAmount(settledAmount),
+    unsettledAmount: formatAmount(unsettledAmount),
     registered,
     unregistered,
   };
@@ -526,7 +578,7 @@ const refreshMainDashboard = () => {
   const dashboardMetrics = getDashboardMetrics(getTableEmployers(officerViewName || 'MasterFile'));
   Object.entries(dashboardMetrics).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-main-metric="${name}"]`);
-    if (metric) metric.textContent = value;
+    if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
   });
   ['settled', 'unsettled'].forEach((name) => {
     const metric = document.querySelector(`[data-status-metric="${name}"]`);
@@ -541,18 +593,18 @@ const refreshMainDashboard = () => {
     const row = document.querySelector(`[data-branch-row="${viewName}"]`);
     Object.entries(metrics).forEach(([name, value]) => {
       const metric = row?.querySelector(`[data-branch-metric="${name}"]`);
-      if (metric) metric.textContent = value;
+      if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
     });
   });
 
   const branchTotals = ['total', 'settled', 'unsettled', 'billed', 'unsettledAmount'].reduce((totals, name) => {
-    totals[name] = branchMetrics.reduce((sum, branch) => sum + Number(branch.metrics[name] || 0), 0);
+    totals[name] = branchMetrics.reduce((sum, branch) => sum + parseAmount(branch.metrics[name]), 0);
     return totals;
   }, {});
   branchTotals.completion = `${branchTotals.total ? ((branchTotals.settled / branchTotals.total) * 100).toFixed(2) : '0.00'}%`;
   Object.entries(branchTotals).forEach(([name, value]) => {
     const metric = document.querySelector(`[data-branch-total="${name}"]`);
-    if (metric) metric.textContent = ['billed', 'unsettledAmount'].includes(name) ? value.toFixed(2) : value;
+    if (metric) metric.textContent = isAmountMetric(name) ? formatAmount(value) : value;
   });
   const leadingBranch = branchMetrics.reduce((leading, branch) => (
     branch.metrics.total > leading.metrics.total ? branch : leading
@@ -568,7 +620,7 @@ const refreshMainDashboard = () => {
 const refreshCharts = () => {
   if (!pieChart || !barChart || !groupedBarChart) return;
 
-  const readMetric = (selector) => Number(document.querySelector(selector)?.textContent.replace('%', '') || 0);
+  const readMetric = (selector) => parseAmount(document.querySelector(selector)?.textContent.replace('%', ''));
   const branchNames = ['AO1', 'AO2', 'AO3'];
   const branchMetrics = branchNames.map((viewName) => ({
     total: readMetric(`[data-branch-row="${viewName}"] [data-branch-metric="total"]`),
@@ -602,10 +654,14 @@ const refreshCharts = () => {
 const openEmployerModal = (viewName) => {
   editingEmployerId = null;
   employerForm.reset();
+  countrySelect.value = 'Philippines';
+  loadAddressRegions('Cebu', 'Toledo');
   employerForm.elements.assignedView.value = getOfficerView(currentUser?.role) || viewName;
   employerForm.classList.remove('is-editing');
-  updateEmployerTotal();
-  modalTitle.textContent = `Employer's Data Form - ${employerForm.elements.assignedView.value}`;
+  updateEmployerTotals();
+  modalTitle.textContent = isOfficerRole(currentUser?.role)
+    ? "Employer's Data Form"
+    : `Employer's Data Form - ${employerForm.elements.assignedView.value}`;
   employerForm.querySelector('.employer-submit-btn').textContent = 'SUBMIT';
   navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
@@ -621,7 +677,7 @@ const openEmployerEdit = (row) => {
     assignedView: employer.assigned_view,
     employerNumber: employer.employer_number,
     employerName: employer.employer_name,
-    address: employer.address,
+    addressLine1: employer.address,
     employeeCount: employer.employee_count,
     principal: employer.principal,
     penalty: employer.penalty,
@@ -647,10 +703,10 @@ const openEmployerEdit = (row) => {
   }).forEach(([field, value]) => {
     if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
   });
-  modalTitle.textContent = `Edit Employer's Data - ${employer.assigned_view}`;
+  modalTitle.textContent = "Edit Employer's Data";
   employerForm.querySelector('.employer-submit-btn').textContent = 'SAVE CHANGES';
   employerForm.classList.add('is-editing');
-  updateEmployerTotal();
+  updateEmployerTotals();
   navigateToView('EmployerForm');
   employerForm.elements.employerNumber.focus();
 };
@@ -669,7 +725,9 @@ const openTableDashboard = (viewName) => {
   const metrics = getDashboardMetrics(getTableEmployers(viewName));
   tableDashboardTitle.textContent = `${viewName.toUpperCase()} DASHBOARD`;
   Object.entries(metrics).forEach(([name, value]) => {
-    tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`).textContent = value;
+    tableDashboardModal.querySelector(`[data-dashboard-metric="${name}"]`).textContent = isAmountMetric(name)
+      ? formatAmount(value)
+      : value;
   });
   tableDashboardModal.hidden = false;
   tableDashboardClose.focus();
@@ -813,6 +871,9 @@ navButtons.forEach((button) => {
       return;
     }
     navigateToView(viewName);
+    if (['AO1', 'AO2', 'AO3', 'MasterFile'].includes(viewName)) {
+      showDatabaseDueNotification(viewName);
+    }
   });
 });
 
@@ -858,25 +919,37 @@ const addEmployerToTable = (viewName, rowValues, employerId, assignedView = view
     targetBody.appendChild(targetRow);
   }
 
-  targetRow.replaceChildren(...rowValues.map((value) => {
+  targetRow.replaceChildren(...rowValues.map((value, cellIndex) => {
     const cell = document.createElement('td');
-    cell.textContent = value || '';
+    cell.textContent = amountFieldIndexes.includes(cellIndex) && value !== ''
+      ? formatAmount(value)
+      : value || '';
     return cell;
   }));
   targetRow.dataset.employerId = String(employerId);
   targetRow.dataset.assignedView = assignedView;
+  const billingDateCell = targetRow.cells[12];
+  if (billingDateCell) billingDateCell.dataset.date = rowValues[12] || '';
   if (employer) targetRow.dataset.employer = JSON.stringify(employer);
-  if (viewName === 'MasterFile') {
-    const billingDateCell = targetRow.cells[12];
-    if (billingDateCell) billingDateCell.dataset.date = rowValues[12] || '';
-    targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[12]));
-    filterMasterFile();
-  }
+  targetRow.classList.toggle('is-due-date', isBillingDue(rowValues[12]));
+  filterAoTable(viewName);
 
   return true;
 };
 
-const employerToRow = (employer) => employerFields.map((field) => employer[field] || '');
+const formatAddressForDisplay = (address) => {
+  const normalizedAddress = String(address || '').trim();
+  const addressParts = normalizedAddress.match(/^(.+),\s*([^,]+),\s*([^,]+)$/);
+  if (!addressParts) return normalizedAddress;
+
+  const city = addressParts[2].trim();
+  const displayCity = /\bcity$/i.test(city) ? city : `${city} City`;
+  return `${addressParts[1].trim()}, ${displayCity}, ${addressParts[3].trim()}`;
+};
+
+const employerToRow = (employer) => employerFields.map((field) => (
+  field === 'address' ? formatAddressForDisplay(employer[field]) : employer[field] || ''
+));
 
 const setTableEditMode = (viewName, isEditing) => {
   const view = document.querySelector(`[data-ao-view="${viewName}"]`);
@@ -969,6 +1042,174 @@ const loadEmployerSummary = async () => {
   branchSummary = await response.json();
 };
 
+const getEmployerAddress = (formData) => [
+  formData.get('addressLine1'),
+  formData.get('addressCity'),
+  formData.get('addressState'),
+].map((value) => String(value || '').trim()).filter(Boolean).join(', ');
+
+const setCityOptions = (cities, placeholder) => {
+  citySelect.replaceChildren(new Option(placeholder, ''));
+  cities.forEach((city) => {
+    const cityLabel = /\bcity$/i.test(city) ? city : `${city} City`;
+    citySelect.add(new Option(cityLabel, city));
+  });
+  citySelect.disabled = cities.length === 0;
+};
+
+const getCitiesFromOpenStreetMap = async (country, state, requestController) => {
+  const safeState = state.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const safeCountry = country.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const query = `[out:json][timeout:25];area["name"="${safeCountry}"]["boundary"="administrative"]->.countryArea;area["name"="${safeState}"]["boundary"="administrative"](area.countryArea)->.searchArea;(node["place"~"city|town|village"](area.searchArea);way["place"~"city|town|village"](area.searchArea);relation["place"~"city|town|village"](area.searchArea););out tags;`;
+  const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, {
+    signal: requestController.signal,
+  });
+  if (!response.ok) throw new Error('Unable to load fallback cities.');
+  const result = await response.json();
+  return Array.isArray(result.elements)
+    ? result.elements
+      .map((element) => element.tags?.name)
+      .filter(Boolean)
+    : [];
+};
+
+const resetPostalCode = () => {
+  postalCodeRequestController?.abort();
+  postalCodeInput.value = '';
+  postalCodeInput.placeholder = 'Select a city';
+};
+
+const loadPostalCode = async () => {
+  const country = countrySelect.value;
+  const state = stateSelect.value;
+  const city = citySelect.value;
+  postalCodeRequestController?.abort();
+  if (!country || !state || !city) {
+    resetPostalCode();
+    return;
+  }
+
+  const requestController = new AbortController();
+  postalCodeRequestController = requestController;
+  postalCodeInput.value = '';
+  postalCodeInput.placeholder = 'Loading postal code...';
+  try {
+    const search = encodeURIComponent(`${city}, ${state}, ${country}`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&q=${search}`, {
+      signal: requestController.signal,
+    });
+    if (!response.ok) throw new Error('Unable to load postal code.');
+    const results = await response.json();
+    postalCodeInput.value = results[0]?.address?.postcode || '';
+    postalCodeInput.placeholder = postalCodeInput.value ? 'Automatic postal code' : 'No postal code found';
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    postalCodeInput.placeholder = 'Enter postal code';
+  } finally {
+    if (postalCodeRequestController === requestController) postalCodeRequestController = null;
+  }
+};
+
+const loadCitiesForCountryAndState = async (preferredCity = '') => {
+  const country = countrySelect.value;
+  const state = stateSelect.value;
+  cityRequestController?.abort();
+  if (!country || !state) {
+    setCityOptions([], country ? 'Select state first' : 'Select country first');
+    return;
+  }
+
+  const requestController = new AbortController();
+  cityRequestController = requestController;
+  setCityOptions([], 'Loading cities...');
+  citySelect.disabled = true;
+  try {
+    const response = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country, state }),
+      signal: requestController.signal,
+    });
+    if (!response.ok) throw new Error('Unable to load cities.');
+    const result = await response.json();
+    let cities = Array.isArray(result.data)
+      ? [...new Set(result.data)].sort((firstCity, secondCity) => firstCity.localeCompare(secondCity))
+      : [];
+    if (!cities.length) {
+      cities = [...new Set(await getCitiesFromOpenStreetMap(country, state, requestController))]
+        .sort((firstCity, secondCity) => firstCity.localeCompare(secondCity));
+    }
+    setCityOptions(cities, cities.length ? 'Select city' : 'No cities found');
+    if (preferredCity && cities.includes(preferredCity)) {
+      citySelect.value = preferredCity;
+      loadPostalCode();
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    setCityOptions([], 'Unable to load cities');
+  } finally {
+    if (cityRequestController === requestController) cityRequestController = null;
+  }
+};
+
+const loadStatesForCountry = async (preferredState = '', preferredCity = '') => {
+  const country = countrySelect.value;
+  stateRequestController?.abort();
+  if (!country) {
+    setStateOptions([], 'Select country first');
+    return;
+  }
+
+  const requestController = new AbortController();
+  stateRequestController = requestController;
+  setStateOptions([], 'Loading states...');
+  stateSelect.disabled = true;
+  try {
+    const response = await fetch('https://countriesnow.space/api/v0.1/countries/states', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ country }),
+      signal: requestController.signal,
+    });
+    if (!response.ok) throw new Error('Unable to load states.');
+    const result = await response.json();
+    const states = Array.isArray(result.data?.states)
+      ? result.data.states
+        .map((state) => state.name)
+        .filter(Boolean)
+        .sort((firstState, secondState) => firstState.localeCompare(secondState))
+      : [];
+    setStateOptions(states, states.length ? 'Select state' : 'No states found');
+    if (preferredState && states.includes(preferredState)) {
+      stateSelect.value = preferredState;
+      loadCitiesForCountryAndState(preferredCity);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+    setStateOptions([], 'Unable to load states');
+  } finally {
+    if (stateRequestController === requestController) stateRequestController = null;
+  }
+};
+
+const setStateOptions = (states, placeholder) => {
+  stateSelect.replaceChildren(new Option(placeholder, ''));
+  states.forEach((state) => stateSelect.add(new Option(state, state)));
+  stateSelect.disabled = states.length === 0;
+};
+
+const loadAddressRegions = (preferredState = '', preferredCity = '') => {
+  resetPostalCode();
+  setCityOptions([], countrySelect.value ? 'Select state first' : 'Select country first');
+  loadStatesForCountry(preferredState, preferredCity);
+};
+
+countrySelect.addEventListener('change', loadAddressRegions);
+stateSelect.addEventListener('change', loadCitiesForCountryAndState);
+stateSelect.addEventListener('change', resetPostalCode);
+citySelect.addEventListener('change', loadPostalCode);
+loadAddressRegions('Cebu', 'Toledo');
+
 employerForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const formData = new FormData(employerForm);
@@ -976,7 +1217,7 @@ employerForm.addEventListener('submit', async (event) => {
     assigned_view: formData.get('assignedView'),
     employer_number: formData.get('employerNumber'),
     employer_name: formData.get('employerName'),
-    address: formData.get('address'),
+    address: getEmployerAddress(formData),
     employee_count: Number(formData.get('employeeCount') || 0),
     principal: Number(formData.get('principal') || 0),
     penalty: Number(formData.get('penalty') || 0),
@@ -989,7 +1230,11 @@ employerForm.addEventListener('submit', async (event) => {
     payment_principal: Number(formData.get('paymentPrincipal') || 0),
     payment_interest: Number(formData.get('paymentInterest') || 0),
     payment_penalty: Number(formData.get('paymentPenalty') || 0),
-    payment_total: Number(formData.get('paymentTotal') || 0),
+    payment_total: Number((
+      Number(formData.get('paymentPrincipal') || 0)
+      + Number(formData.get('paymentInterest') || 0)
+      + Number(formData.get('paymentPenalty') || 0)
+    ).toFixed(2)),
     billing_date: formData.get('billingDate') || null,
     coverage_date: formData.get('coverageDate') || null,
     soa_date: formData.get('soaDate') || null,
@@ -1053,9 +1298,10 @@ document.querySelectorAll('[data-table-edit-data]').forEach((button) => {
   button.addEventListener('click', () => editSelectedEmployer(button.dataset.tableEditData));
 });
 
-[masterFileSearch, masterFileDate, masterFileAo, masterFileStatus].forEach((control) => {
-  control.addEventListener('input', filterMasterFile);
-  control.addEventListener('change', filterMasterFile);
+document.querySelectorAll('.ao-table-filters input, .ao-table-filters select').forEach((control) => {
+  const viewName = control.closest('.ao-view').dataset.aoView;
+  control.addEventListener('input', () => filterAoTable(viewName));
+  control.addEventListener('change', () => filterAoTable(viewName));
 });
 
 deleteConfirmApprove.addEventListener('click', deleteSelectedRows);
