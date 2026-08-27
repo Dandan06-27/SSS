@@ -41,7 +41,7 @@ const showAuthForm = (formName) => {
   registerForm.hidden = !isRegister;
 };
 
-const showDashboard = (account, { animate = false } = {}) => {
+const showDashboard = (account, { animate = false, onAnimationEnd } = {}) => {
   currentUser = account;
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
@@ -76,6 +76,7 @@ const showDashboard = (account, { animate = false } = {}) => {
       authScreen.hidden = true;
       dashboardShell.hidden = false;
       openOfficerDataForm();
+      if (onAnimationEnd) onAnimationEnd();
     }, AUTH_TRANSITION_MS);
     return;
   }
@@ -135,11 +136,22 @@ loginForm.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error(result.error || 'Unable to sign in.');
 
     sessionStorage.setItem('sssAuthenticatedUser', JSON.stringify(result.user));
-    showDashboard(result.user, { animate: true });
+    let calendarEventsReady;
+    showDashboard(result.user, {
+      animate: true,
+      onAnimationEnd: () => {
+        if (isOfficerRole(result.user.role)) return;
+        showCalendarPage();
+        calendarEventsReady.then(() => {
+          window.setTimeout(showCurrentDateNotification, 500);
+        });
+      },
+    });
     syncOfficerFormLayout();
     loadEmployers().then(refreshMainDashboard).catch((error) => console.error(error));
     loadEmployerSummary().then(refreshMainDashboard).catch((error) => console.error(error));
-    loadCalendarEvents().catch((error) => console.error(error));
+    calendarEventsReady = loadCalendarEvents({ showNotification: false });
+    calendarEventsReady.catch((error) => console.error(error));
   } catch (error) {
     loginError.textContent = error.message;
     loginError.hidden = false;
@@ -333,13 +345,13 @@ const renderCalendar = () => {
   }
 };
 
-const loadCalendarEvents = async () => {
+const loadCalendarEvents = async ({ showNotification = true } = {}) => {
   if (!currentUser) return;
   const response = await fetch('/api/calendar-events', { headers: { Authorization: `Bearer ${currentUser.accessToken}` } });
   if (!response.ok) throw new Error('Unable to load calendar events.');
   calendarEvents = await response.json();
   renderCalendar();
-  showCurrentDateNotification();
+  if (showNotification) window.setTimeout(showCurrentDateNotification, 500);
 };
 
 const showCalendarPage = () => {
@@ -1096,14 +1108,57 @@ const postalCodesByLocation = {
   Philippines: {
     Cebu: {
       'Bogo City': '6010',
+      Alcantara: '6049',
+      Alcoy: '6023',
+      Alegria: '6030',
+      Aloguinsan: '6040',
+      Argao: '6021',
+      Asturias: '6042',
+      Badian: '6031',
+      Balamban: '6041',
+      Bantayan: '6052',
+      Barili: '6036',
+      Boljoon: '6024',
+      Borbon: '6008',
       'Carcar City': '6019',
+      Carmen: '6005',
+      Catmon: '6006',
+      Compostela: '6003',
+      Consolacion: '6001',
+      Cordova: '6017',
+      Daanbantayan: '6013',
+      Dalaguete: '6022',
       'Cebu City': '6000',
       'Danao City': '6004',
+      Dumanjug: '6035',
+      Ginatilan: '6029',
       'Lapu-Lapu City': '6015',
+      Liloan: '6002',
+      Madridejos: '6053',
+      Malabuyoc: '6029',
       'Mandaue City': '6014',
+      Medellin: '6012',
+      Minglanilla: '6046',
+      Moalboal: '6032',
       'Naga City': '6037',
+      Oslob: '6025',
+      Pilar: '6048',
+      Pinamungajan: '6039',
+      Poro: '6048',
+      Ronda: '6034',
+      Samboan: '6027',
+      'San Fernando': '6018',
+      'San Francisco': '6050',
+      'San Remigio': '6011',
+      'Santa Fe': '6047',
+      Santander: '6026',
+      Sibonga: '6020',
+      Sogod: '6007',
+      Tabogon: '6009',
+      Tabuelan: '6044',
       'Talisay City': '6045',
       'Toledo City': '6038',
+      Tuburan: '6043',
     },
   },
 };
@@ -1119,6 +1174,19 @@ const normalizeLocationName = (name) => String(name || '')
   .replace(/^city of /, '')
   .replace(/ city$/, '')
   .trim();
+
+const loadPhilippineCitiesAndMunicipalities = async (province) => {
+  const provincesResponse = await fetch('https://psgc.gitlab.io/api/provinces/');
+  if (!provincesResponse.ok) throw new Error('Unable to load province codes.');
+  const provinces = await provincesResponse.json();
+  const provinceRecord = provinces.find((item) => normalizeLocationName(item.name) === normalizeLocationName(province));
+  if (!provinceRecord) throw new Error('Province not found.');
+
+  const locationsResponse = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceRecord.code}/cities-municipalities/`);
+  if (!locationsResponse.ok) throw new Error('Unable to load city and municipality codes.');
+  const locations = await locationsResponse.json();
+  return locations.map((location) => location.name).filter(Boolean).sort();
+};
 
 const loadBarangaysForAddress = async () => {
   const country = countryInput.value;
@@ -1162,7 +1230,9 @@ const loadBarangaysForAddress = async () => {
 };
 
 const updatePostalCode = () => {
-  const postalCode = postalCodesByLocation[countryInput.value]?.[stateSelect.value]?.[citySelect.value] || '';
+  const postalCodesByCity = postalCodesByLocation[countryInput.value]?.[stateSelect.value] || {};
+  const cityKey = Object.keys(postalCodesByCity).find((key) => normalizeLocationName(key) === normalizeLocationName(citySelect.value));
+  const postalCode = cityKey ? postalCodesByCity[cityKey] : '';
   postalCodeInput.value = postalCode;
   postalCodeInput.readOnly = Boolean(postalCode);
 };
@@ -1215,15 +1285,20 @@ const loadCitiesForAddress = async () => {
     return;
   }
   try {
-    const response = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country, state: province }),
-    });
-    const result = await response.json();
-    const cities = Array.isArray(result.data) && result.data.length
-      ? [...new Set(result.data)].sort()
-      : (fallbackCitiesByProvince[province] || []);
+    let cities;
+    if (country.trim().toLowerCase() === 'philippines') {
+      cities = await loadPhilippineCitiesAndMunicipalities(province);
+    } else {
+      const response = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country, state: province }),
+      });
+      const result = await response.json();
+      cities = Array.isArray(result.data) && result.data.length
+        ? [...new Set(result.data)].sort()
+        : (fallbackCitiesByProvince[province] || []);
+    }
     setAddressOptions(citySelect, cities, cities.length ? 'Select city' : 'No cities found');
     updatePostalCode();
     await loadBarangaysForAddress();
@@ -1239,7 +1314,10 @@ countryInput.addEventListener('change', updateBarangayVisibility);
 updateBarangayVisibility();
 countryInput.addEventListener('change', loadAddressLocations);
 stateSelect.addEventListener('change', loadCitiesForAddress);
-citySelect.addEventListener('change', loadBarangaysForAddress);
+citySelect.addEventListener('change', () => {
+  updatePostalCode();
+  loadBarangaysForAddress();
+});
 loadAddressLocations({ useDefaults: true });
 
 employerForm.addEventListener('submit', async (event) => {
