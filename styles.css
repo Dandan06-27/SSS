@@ -370,7 +370,7 @@ body {
   display: block;
 }
 
-.officer-mode #mainNav .dashboard-nav-item,
+.officer-mode #mainNav .org-chart-btn,
 .officer-mode #mainNav .add-record-btn,
 .officer-mode .modal-backdrop {
   display: none;

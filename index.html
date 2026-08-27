@@ -170,14 +170,14 @@
             <label>Postal Code:<input name="addressPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Select city"></label>
           </div>
           <label class="edit-only">No. of EEs:<input name="employeeCount" type="number" min="0"></label>
-          <label>Principal:<input name="principal" type="number" step="0.01" min="0"></label>
-          <label>Penalty:<input name="penalty" type="number" step="0.01" min="0"></label>
-          <label>Interest:<input name="interest" type="number" step="0.01" min="0"></label>
-          <label>Total:<input name="totalAmount" type="number" step="0.01" min="0" disabled></label>
-          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="number" step="0.01" min="0"></label>
-          <label class="edit-only">Payment Total:<input name="paymentTotal" type="number" step="0.01" min="0" disabled></label>
+          <label>Principal:<input name="principal" type="text" inputmode="decimal"></label>
+          <label>Penalty:<input name="penalty" type="text" inputmode="decimal"></label>
+          <label>Interest:<input name="interest" type="text" inputmode="decimal"></label>
+          <label>Total:<input name="totalAmount" type="text" inputmode="decimal" disabled></label>
+          <label class="edit-only">Payment Principal:<input name="paymentPrincipal" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Interest:<input name="paymentInterest" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Penalty:<input name="paymentPenalty" type="text" inputmode="decimal"></label>
+          <label class="edit-only">Payment Total:<input name="paymentTotal" type="text" inputmode="decimal" disabled></label>
           <label>Date of Billing (Served):<input name="billingDate" type="date"></label>
           <label>SOA Date Served:<input name="soaDate" type="date"></label>
           <label class="edit-only">Date 2nd SOA (Served):<input name="soa2Date" type="date"></label>

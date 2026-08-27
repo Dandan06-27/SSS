@@ -49,6 +49,7 @@ const showDashboard = (account, { animate = false } = {}) => {
   pageWrapper.classList.remove('officer-mode');
   pageWrapper.classList.add('dashboard-active');
   pageWrapper.dataset.officerView = officerViewName;
+  document.querySelector('.org-chart-btn').hidden = officerMode;
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     const navView = navItem.dataset.navView;
     navItem.hidden = (superAdmin && navView.startsWith('AO'))
@@ -93,6 +94,7 @@ const signOut = () => {
   document.querySelectorAll('#mainNav .nav-item[data-nav-view]').forEach((navItem) => {
     navItem.hidden = false;
   });
+  document.querySelector('.org-chart-btn').hidden = false;
   document.getElementById('employerFormView').hidden = true;
   sessionStorage.removeItem('sssAuthenticatedUser');
   dashboardShell.hidden = true;
@@ -244,15 +246,35 @@ const orgChartContent = document.querySelector('.org-chart-content');
 
 const formatCalendarDate = (date) => date.toISOString().slice(0, 10);
 const updateEmployerTotals = () => {
-  const principal = Number(employerForm.elements.principal.value || 0);
-  const penalty = Number(employerForm.elements.penalty.value || 0);
-  const interest = Number(employerForm.elements.interest.value || 0);
-  employerForm.elements.totalAmount.value = (principal + penalty + interest).toFixed(2);
-  const paymentPrincipal = Number(employerForm.elements.paymentPrincipal.value || 0);
-  const paymentInterest = Number(employerForm.elements.paymentInterest.value || 0);
-  const paymentPenalty = Number(employerForm.elements.paymentPenalty.value || 0);
-  employerForm.elements.paymentTotal.value = (paymentPrincipal + paymentInterest + paymentPenalty).toFixed(2);
+  const principal = parseAmount(employerForm.elements.principal.value);
+  const penalty = parseAmount(employerForm.elements.penalty.value);
+  const interest = parseAmount(employerForm.elements.interest.value);
+  employerForm.elements.totalAmount.value = formatAmount(principal + penalty + interest);
+  const paymentPrincipal = parseAmount(employerForm.elements.paymentPrincipal.value);
+  const paymentInterest = parseAmount(employerForm.elements.paymentInterest.value);
+  const paymentPenalty = parseAmount(employerForm.elements.paymentPenalty.value);
+  employerForm.elements.paymentTotal.value = formatAmount(paymentPrincipal + paymentInterest + paymentPenalty);
 };
+
+const amountFieldNames = [
+  'principal',
+  'penalty',
+  'interest',
+  'totalAmount',
+  'paymentPrincipal',
+  'paymentInterest',
+  'paymentPenalty',
+  'paymentTotal',
+];
+
+amountFieldNames.forEach((fieldName) => {
+  employerForm.elements[fieldName].addEventListener('focus', (event) => {
+    event.target.value = event.target.value.replace(/,/g, '');
+  });
+  employerForm.elements[fieldName].addEventListener('blur', (event) => {
+    event.target.value = formatAmount(event.target.value);
+  });
+});
 
 ['principal', 'penalty', 'interest'].forEach((fieldName) => {
   employerForm.elements[fieldName].addEventListener('input', updateEmployerTotals);
@@ -685,6 +707,9 @@ const openEmployerEdit = async (row) => {
     status: employer.status,
   }).forEach(([field, value]) => {
     if (employerForm.elements[field]) employerForm.elements[field].value = value ?? '';
+  });
+  amountFieldNames.forEach((fieldName) => {
+    employerForm.elements[fieldName].value = formatAmount(employerForm.elements[fieldName].value);
   });
   updateBarangayVisibility();
   await loadAddressLocations();
@@ -1237,21 +1262,21 @@ employerForm.addEventListener('submit', async (event) => {
     address_barangay: formData.get('addressBarangay') || '',
     address_postal_code: formData.get('addressPostalCode') || '',
     employee_count: Number(formData.get('employeeCount') || 0),
-    principal: Number(formData.get('principal') || 0),
-    penalty: Number(formData.get('penalty') || 0),
-    interest: Number(formData.get('interest') || 0),
+    principal: parseAmount(formData.get('principal')),
+    penalty: parseAmount(formData.get('penalty')),
+    interest: parseAmount(formData.get('interest')),
     total_amount: Number((
-      Number(formData.get('principal') || 0)
-      + Number(formData.get('penalty') || 0)
-      + Number(formData.get('interest') || 0)
+      parseAmount(formData.get('principal'))
+      + parseAmount(formData.get('penalty'))
+      + parseAmount(formData.get('interest'))
     ).toFixed(2)),
-    payment_principal: Number(formData.get('paymentPrincipal') || 0),
-    payment_interest: Number(formData.get('paymentInterest') || 0),
-    payment_penalty: Number(formData.get('paymentPenalty') || 0),
+    payment_principal: parseAmount(formData.get('paymentPrincipal')),
+    payment_interest: parseAmount(formData.get('paymentInterest')),
+    payment_penalty: parseAmount(formData.get('paymentPenalty')),
     payment_total: Number((
-      Number(formData.get('paymentPrincipal') || 0)
-      + Number(formData.get('paymentInterest') || 0)
-      + Number(formData.get('paymentPenalty') || 0)
+      parseAmount(formData.get('paymentPrincipal'))
+      + parseAmount(formData.get('paymentInterest'))
+      + parseAmount(formData.get('paymentPenalty'))
     ).toFixed(2)),
     billing_date: formData.get('billingDate') || null,
     coverage_date: formData.get('coverageDate') || null,
