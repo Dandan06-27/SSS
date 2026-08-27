@@ -11,7 +11,6 @@ const registerError = document.getElementById('registerError');
 const returnToLogin = document.getElementById('returnToLogin');
 const loggedInUser = document.getElementById('loggedInUser');
 const logoutButton = document.getElementById('logoutButton');
-const orgChartButton = document.querySelector('.org-chart-btn');
 const databaseNotification = document.getElementById('databaseNotification');
 const employerSuccessModal = document.getElementById('employerSuccessModal');
 const employerSuccessClose = document.getElementById('employerSuccessClose');
@@ -22,7 +21,6 @@ const logoutConfirmCancel = document.getElementById('logoutConfirmCancel');
 const pageWrapper = document.getElementById('dashboardShell');
 let currentUser = null;
 const AUTH_TRANSITION_MS = 1200;
-let dashboardReady = Promise.resolve();
 let editingEmployerId = null;
 let databaseNotificationTimer;
 
@@ -48,7 +46,6 @@ const showDashboard = (account, { animate = false } = {}) => {
   const officerViewName = getOfficerView(account.role);
   const officerMode = Boolean(officerViewName);
   const superAdmin = account.role === 'Super Admin';
-  orgChartButton.hidden = officerMode || Boolean(account.isAccountAssistant);
   pageWrapper.classList.remove('officer-mode');
   pageWrapper.classList.add('dashboard-active');
   pageWrapper.dataset.officerView = officerViewName;
@@ -73,15 +70,12 @@ const showDashboard = (account, { animate = false } = {}) => {
   if (animate) {
     authScreen.hidden = false;
     authScreen.classList.add('is-authenticating');
-    dashboardReady = new Promise((resolve) => {
-      window.setTimeout(() => {
-        authScreen.classList.remove('is-authenticating');
-        authScreen.hidden = true;
-        dashboardShell.hidden = false;
-        openOfficerDataForm();
-        resolve();
-      }, AUTH_TRANSITION_MS);
-    });
+    window.setTimeout(() => {
+      authScreen.classList.remove('is-authenticating');
+      authScreen.hidden = true;
+      dashboardShell.hidden = false;
+      openOfficerDataForm();
+    }, AUTH_TRANSITION_MS);
     return;
   }
 
@@ -92,7 +86,6 @@ const showDashboard = (account, { animate = false } = {}) => {
 
 const signOut = () => {
   currentUser = null;
-  orgChartButton.hidden = false;
   logoutConfirmModal.hidden = true;
   authScreen.classList.remove('is-authenticating');
   pageWrapper.classList.remove('officer-mode');
@@ -326,8 +319,7 @@ const loadCalendarEvents = async () => {
   if (!response.ok) throw new Error('Unable to load calendar events.');
   calendarEvents = await response.json();
   renderCalendar();
-  await dashboardReady;
-  window.setTimeout(showCurrentDateNotification, 500);
+  showCurrentDateNotification();
 };
 
 const showCalendarPage = () => {
